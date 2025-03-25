@@ -7,9 +7,24 @@ use Illuminate\Http\Request;
 
 class CotizacionController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $cotizaciones = Cotizacion::orderBy('fecha', 'desc')->get();
+        $query = Cotizacion::query();
+
+        if ($request->filled('nombre')) {
+            $query->where('nombre_persona', 'like', '%' . $request->nombre . '%')
+                  ->orWhere('nombre_empresa', 'like', '%' . $request->nombre . '%');
+        }
+
+        if ($request->filled('estado_de_pago')) {
+            $query->where('estado_de_pago', $request->estado_de_pago);
+        }
+
+        $cotizaciones = $query->with('user')->orderBy('fecha', 'desc')->get();
+
+        // Depuración temporal
+        // dd($cotizaciones);
+
         return view('lista', compact('cotizaciones'));
     }
 
@@ -26,11 +41,10 @@ class CotizacionController extends Controller
             'direccion' => 'required',
             'telefono' => 'required',
             'precio' => 'required|numeric',
-            'nombre_empresa' => 'nullable|string', // Opcional
-            'correo' => 'nullable|email',          // Opcional
+            'nombre_empresa' => 'nullable|string',
+            'correo' => 'nullable|email',
         ]);
 
-        // Generar id_cotizacion automáticamente
         $ultimaCotizacion = Cotizacion::orderBy('id_cotizacion', 'desc')->first();
         if ($ultimaCotizacion) {
             $ultimoNumero = (int) substr($ultimaCotizacion->id_cotizacion, 4);
@@ -43,12 +57,12 @@ class CotizacionController extends Controller
         Cotizacion::create([
             'id_cotizacion' => $idCotizacion,
             'id_user' => auth()->id(),
-            'nombre_empresa' => $request->nombre_empresa, // Puede ser null
+            'nombre_empresa' => $request->nombre_empresa,
             'nombre_persona' => $request->nombre_persona,
             'nit' => $request->nit,
             'direccion' => $request->direccion,
             'telefono' => $request->telefono,
-            'correo' => $request->correo, // Puede ser null
+            'correo' => $request->correo,
             'precio' => $request->precio,
             'estado_de_pago' => 'pendiente',
         ]);
@@ -66,8 +80,8 @@ class CotizacionController extends Controller
             'direccion' => 'required',
             'telefono' => 'required',
             'precio' => 'required|numeric',
-            'nombre_empresa' => 'nullable|string', // Opcional
-            'correo' => 'nullable|email|unique:cotizacion,correo,' . $cotizacion->id_cotizacion . ',id_cotizacion', // Opcional
+            'nombre_empresa' => 'nullable|string',
+            'correo' => 'nullable|email|unique:cotizacion,correo,' . $cotizacion->id_cotizacion . ',id_cotizacion',
         ]);
 
         $cotizacion->update($request->only([
@@ -92,25 +106,33 @@ class CotizacionController extends Controller
 
     public function updatePaymentStatus(Request $request, $id)
     {
-        $cotizacion = Cotizacion::findOrFail($id);
+        $cotizacion = Cotizacion::where('id_cotizacion', $id)->firstOrFail();
+
+        // Depuración temporal
+        // dd([
+        //     'id' => $id,
+        //     'cotizacion' => $cotizacion,
+        //     'request_data' => $request->all()
+        // ]);
 
         $request->validate([
-            'id_cotizacion' => 'required|string|unique:cotizacion,id_cotizacion,' . $cotizacion->id_cotizacion . ',id_cotizacion',
             'estado_de_pago' => 'required|in:pendiente,pagado',
             'archivo' => 'nullable|file|max:2048',
         ]);
 
+        $cotizacion->estado_de_pago = $request->estado_de_pago;
+
         if ($request->hasFile('archivo')) {
-            $file = $request->file('archivo');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->storeAs('public/cotizaciones', $filename);
+            if ($cotizacion->archivo) {
+                \Storage::delete('public/cotizaciones/' . $cotizacion->archivo);
+            }
+            $filename = time() . '_' . $request->file('archivo')->getClientOriginalName();
+            $request->file('archivo')->storeAs('public/cotizaciones', $filename);
             $cotizacion->archivo = $filename;
         }
 
-        $cotizacion->id_cotizacion = $request->id_cotizacion;
-        $cotizacion->estado_de_pago = $request->estado_de_pago;
         $cotizacion->save();
 
-        return redirect()->route('lista')->with('success', 'Estado de pago y archivo actualizados correctamente.');
+        return redirect()->route('lista')->with('success', 'Estado de pago actualizado correctamente.');
     }
 }

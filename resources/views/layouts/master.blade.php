@@ -5,27 +5,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="icon" href="{{ asset('images/Favicon2.png')}}" type="image/x-icon">
+    <link rel="icon" href="{{ asset('images/Favicon2.png') }}" type="image/x-icon">
     <title>Bienvenido Gestion de Calidad</title>
     <!-- Google Font: Source Sans Pro -->
-  <link rel="stylesheet" href="{{ asset('AdminLTE-3.2.0/https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback') }}">
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="{{ asset('AdminLTE-3.2.0/plugins/fontawesome-free/css/all.min.css') }}">
-  <!-- Theme style -->
-  <link rel="stylesheet" href="{{ asset('AdminLTE-3.2.0/dist/css/adminlte.min.css') }}">
-  <!-- overlayScrollbars -->
-  <link rel="stylesheet" href="{{ asset('AdminLTE-3.2.0/plugins/overlayScrollbars/css/OverlayScrollbars.min.css') }}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="{{ asset('AdminLTE-3.2.0/plugins/fontawesome-free/css/all.min.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Theme style -->
+    <link rel="stylesheet" href="{{ asset('AdminLTE-3.2.0/dist/css/adminlte.min.css') }}">
+    <!-- overlayScrollbars -->
+    <link rel="stylesheet" href="{{ asset('AdminLTE-3.2.0/plugins/overlayScrollbars/css/OverlayScrollbars.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-  <script src="{{ asset('js/app.js') }}" defer></script>
+    <script src="{{ asset('js/app.js') }}" defer></script>
 </head>
 
 <body>
     <nav class="main-header navbar navbar-expand navbar-white navbar-light">
         <!-- Left navbar links -->
         <ul class="navbar-nav">
-          <li class="nav-item">
-            <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
-          </li>
+            <li class="nav-item">
+                <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+            </li>
         </ul>
 
         <!-- Right navbar links -->
@@ -48,27 +51,23 @@
                 </div>
             </li>
         </ul>
-      </nav>
+    </nav>
     <aside class="main-sidebar sidebar-success-green elevation-4">
         <div class="sidebar">
             <!-- Sidebar Menu -->
             <nav class="mt-2">
-                <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu"
-                    data-accordion="false">
+                <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                     <br><br><br><br>
 
                     <!-- Unidades Productivas -->
                     <li class="nav-item has-treeview">
                         <a href="#" class="nav-link text-success">
-                            <i class="fas fa-seedling"></i> &nbsp;
-                            <p>
-                                Unidades Productivas
-                                <i class="fas fa-angle-left right"></i>
-                            </p>
+                            <i class="fa-solid fa-money-check-dollar"></i> 
+                            <p>Cotizaciones</p>
                         </a>
                         <ul class="nav nav-treeview">
                             <li class="nav-item">
-                            <a href="{{ route('cotizacion.create') }}" class="nav-link text-dark">
+                                <a href="{{ route('cotizacion.create') }}" class="nav-link text-dark">
                                     <i class="nav-icon fas fa-edit"></i>
                                     <p>Ingreso</p>
                                 </a>
@@ -81,59 +80,47 @@
                             </li>
                         </ul>
                     </li>
-
-                    <!-- Bodega Finca -->
+                   
+                    <!-- Usuarios -->
                     <li class="nav-item has-treeview">
                         <a href="#" class="nav-link text-success">
-                            <i class="fas fa-warehouse"></i>&nbsp;
-                            <p>
-                                Bodega Finca
-                                <i class="fas fa-angle-left right"></i>
-                            </p>
+                            <i class="fa-solid fa-user-plus"></i> 
+                            <p>Usuarios</p>
                         </a>
                         <ul class="nav nav-treeview">
                             <li class="nav-item">
-                                <a href="{{ asset('AdminLTE-3.2.0/pages/UI/general.html') }}"
-                                    class="nav-link text-dark">
-                                    <i class="nav-icon fas fa-box"></i>
-                                    <p>Insumos</p>
-                                    <i class="fas fa-angle-left right"></i>
-                                </a>
-                                <ul class="nav nav-treeview">
-                            <li class="nav-item">
-
+                                <a href="{{ route('customers.create') }}" class="nav-link text-dark">
                                     <i class="nav-icon fas fa-edit"></i>
                                     <p>Ingreso</p>
                                 </a>
                             </li>
                             <li class="nav-item">
-
-                                    <i class="nav-icon fas fa-clipboard-list"></i>
-                                    <p>Lista</p>
-                                </a>
-                            </li>
-                        </ul>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{{ asset('AdminLTE-3.2.0/pages/UI/icons.html') }}" class="nav-link text-dark">
-                                    <i class="nav-icon fas fa-tools"></i>
-                                    <p>Herramientas</p>
-                                    <i class="fas fa-angle-left right"></i>
-                                </a>
-                                <ul class="nav nav-treeview">
-                            <li class="nav-item">
-
-                            <i class="nav-icon fas fa-edit"></i>
-                                    <p>Ingreso</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-
+                                <a href="{{ route('listac') }}" class="nav-link text-dark">
                                     <i class="nav-icon fas fa-clipboard-list"></i>
                                     <p>Listas</p>
                                 </a>
                             </li>
                         </ul>
+                    </li>
+
+                    <!-- Servicios -->
+                    <li class="nav-item has-treeview">
+                        <a href="#" class="nav-link text-success">
+                            <i class="fa-solid fa-cogs"></i> 
+                            <p>Servicios</p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('services.create') }}" class="nav-link text-dark">
+                                    <i class="nav-icon fas fa-edit"></i>
+                                    <p>Ingreso</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('listas') }}" class="nav-link text-dark">
+                                    <i class="nav-icon fas fa-clipboard-list"></i>
+                                    <p>Listas</p>
+                                </a>
                             </li>
                         </ul>
                     </li>
@@ -141,7 +128,7 @@
                     <!-- Roles Mayordomo -->
                     <li class="nav-item">
                         <a href="{{ asset('AdminLTE-3.2.0/pages/widgets.html') }}" class="nav-link text-success">
-                            <i class="fas fa-user"></i>&nbsp;
+                            <i class="fa-solid fa-money-check-dollar"></i>
                             <p>Roles Mayordomo</p>
                         </a>
                     </li>
@@ -149,7 +136,7 @@
                     <!-- Análisis de Producción -->
                     <li class="nav-item">
                         <a href="{{ asset('AdminLTE-3.2.0/pages/widgets.html') }}" class="nav-link text-success">
-                            <i class="fas fa-chart-bar"></i>&nbsp;
+                            <i class="fas fa-chart-bar"></i> 
                             <p>Análisis de Producción</p>
                         </a>
                     </li>
@@ -170,15 +157,13 @@
                         </a>
                         <ul class="nav nav-treeview">
                             <li class="nav-item">
-                                <a href="{{ asset('AdminLTE-3.2.0/pages/tables/simple.html') }}"
-                                    class="nav-link text-dark">
+                                <a href="{{ asset('AdminLTE-3.2.0/pages/tables/simple.html') }}" class="nav-link text-dark">
                                     <i class="nav-icon fas fa-tasks"></i>
                                     <p>Actividades</p>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="{{ asset('AdminLTE-3.2.0/pages/tables/data.html') }}"
-                                    class="nav-link text-dark">
+                                <a href="{{ asset('AdminLTE-3.2.0/pages/tables/data.html') }}" class="nav-link text-dark">
                                     <i class="nav-icon fas fa-file-invoice-dollar"></i>
                                     <p>Contable</p>
                                 </a>
@@ -193,7 +178,7 @@
     </aside>
 
     <div class="content-wrapper">
-        @yield('content')
+        @yield('contenido')
     </div>
 
     <!-- Control Sidebar -->
@@ -217,8 +202,8 @@
     <script src="{{ asset('AdminLTE-3.2.0/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js') }}"></script>
     <!-- AdminLTE App -->
     <script src="{{ asset('AdminLTE-3.2.0/dist/js/adminlte.js') }}"></script>
-    <!-- AdminLTE for demo purposes -->
-    <script src="{{ asset('AdminLTE-3.2.0/dist/js/demo.js') }}"></script>
+    <!-- Include additional scripts from child views -->
+    @yield('scripts')
 </body>
 
 </html>

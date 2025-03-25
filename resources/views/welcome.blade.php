@@ -163,6 +163,7 @@
 
     <div class="container">
         <h1 class="title">Laboratorio</h1>
+        <h1>Laboratorio Cefa</h1>
         <p class="subtitle">Tu espacio para crear y descubrir</p>
         <div class="buttons">
             @if (Route::has('login'))
