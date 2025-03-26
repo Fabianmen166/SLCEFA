@@ -129,7 +129,7 @@
                                                 <select class="form-control" id="edit-tipo_cliente" name="tipo_cliente" required>
                                                     <option value="externo">Externo</option>
                                                     <option value="interno">Interno</option>
-                                                    <option value="trabajador">Trabajador</option>
+                                                    <option value="Proveedor">Proveedor Sena</option>
                                                 </select>
                                             </div>
                                         </div>

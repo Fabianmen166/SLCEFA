@@ -62,7 +62,7 @@
                                 <select class="form-control" id="tipo_cliente" name="tipo_cliente" required>
                                     <option value="externo" {{ old('tipo_cliente', $customer->tipo_cliente) == 'externo' ? 'selected' : '' }}>Externo</option>
                                     <option value="interno" {{ old('tipo_cliente', $customer->tipo_cliente) == 'interno' ? 'selected' : '' }}>Interno</option>
-                                    <option value="trabajador" {{ old('tipo_cliente', $customer->tipo_cliente) == 'trabajador' ? 'selected' : '' }}>Trabajador</option>
+                                    <option value="Proveedor" {{ old('tipo_cliente', $customer->tipo_cliente) == 'Proveedor' ? 'selected' : '' }}>Proveedor</option>
                                 </select>
                             </div>
                             <button type="submit" class="btn btn-primary">Actualizar</button>

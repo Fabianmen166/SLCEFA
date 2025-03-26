@@ -53,7 +53,7 @@ class CustomersController extends Controller
             'telefono' => 'required|string|max:255',
             'nit' => 'required|string|max:255|unique:customers,nit',
             'correo' => 'nullable|email|max:255',
-            'tipo_cliente' => 'required|in:externo,interno,trabajador',
+            'tipo_cliente' => 'required|in:externo,interno,Proveedor',
         ]);
 
         $customers = new Customers();
@@ -97,7 +97,7 @@ class CustomersController extends Controller
             'telefono' => 'required|string|max:255',
             'nit' => 'required|string|max:255|unique:customers,nit,' . $id . ',customers_id', // Asegurar que el NIT sea único, excepto para este cliente
             'correo' => 'nullable|email|max:255',
-            'tipo_cliente' => 'required|in:externo,interno,trabajador',
+            'tipo_cliente' => 'required|in:externo,interno,Proveedor',
         ]);
 
         $customers->solicitante = $request->input('solicitante');

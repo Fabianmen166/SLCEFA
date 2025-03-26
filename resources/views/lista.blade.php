@@ -32,7 +32,7 @@
                             <div class="row">
                                 <div class="col-md-4">
                                     <label for="nit" class="form-label">Buscar por NIT del Cliente</label>
-                                    <input type="text" class="form-control" id="nit" name="nit" value="{{ request('nit') }}" placeholder="NIT del Cliente">
+                                    <input type="text" class="form-control" id="nit" name="nit" value="{{ request('nit') }}" placeholder="NIT del Cliente o ID de Cotización">
                                 </div>
                                 <div class="col-md-4 d-flex align-items-end">
                                     <button type="submit" class="btn btn-primary">Filtrar</button>
