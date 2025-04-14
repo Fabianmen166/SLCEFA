@@ -158,4 +158,4 @@ You can simply add this code after the `div.sidebar`:
 > You can also use `.text-sm` on `.nav-sidebar` or `.brand-link` for smaller font.
 {: .quote-info}
 
-For more information about the JS part of the sidebar, please visit the [PushMenu plugin page]({% link javascript/push-menu.md %})
+For more information about the JS part of the sidebar, please visit the [PushMenu plugin page]
