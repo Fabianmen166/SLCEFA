@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Services; // Updated to use Services model
+use App\Models\Service; // Updated to use Services model
 use Illuminate\Http\Request;
 
 class ServicesController extends Controller
@@ -15,7 +15,7 @@ class ServicesController extends Controller
     public function index(Request $request)
     {
         // Initialize the query
-        $query = Services::query();
+        $query = Service::query();
 
         // Filter by description
         if ($request->filled('descripcion')) {
@@ -55,7 +55,7 @@ class ServicesController extends Controller
             'acreditado' => 'boolean',
         ]);
 
-        $service = new Services();
+        $service = new Service();
         $service->descripcion = $request->input('descripcion');
         $service->precio = $request->input('precio');
         $service->acreditado = $request->has('acreditado') ? 1 : 0;
@@ -73,7 +73,7 @@ class ServicesController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $service = Services::findOrFail($id);
+        $service = Service::findOrFail($id);
 
         $request->validate([
             'descripcion' => 'required|string|max:255',
@@ -97,7 +97,7 @@ class ServicesController extends Controller
      */
     public function destroy($id)
     {
-        $service = Services::findOrFail($id);
+        $service = Service::findOrFail($id);
         $service->delete();
         return redirect()->route('listas')->with('success', 'Service deleted successfully.');
     }

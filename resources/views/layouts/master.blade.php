@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="icon" href="{{ asset('images/Favicon2.png') }}" type="image/x-icon">
-    <title>Bienvenido Gestion de Calidad</title>
+    <title>Bienvenido Gestión de Calidad</title>
     <!-- Google Font: Source Sans Pro -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
     <!-- Font Awesome -->
@@ -42,7 +42,7 @@
                     <a class="dropdown-item" href="{{ route('logout') }}"
                        onclick="event.preventDefault();
                                      document.getElementById('logout-form').submit();">
-                        {{ __('Cerrar Sesiòn') }}
+                        {{ __('Cerrar Sesión') }}
                     </a>
 
                     <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
@@ -52,6 +52,7 @@
             </li>
         </ul>
     </nav>
+
     <aside class="main-sidebar sidebar-success-green elevation-4">
         <div class="sidebar">
             <!-- Sidebar Menu -->
@@ -59,7 +60,7 @@
                 <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                     <br><br><br><br>
 
-                    <!-- Unidades Productivas -->
+                    <!-- Cotizaciones -->
                     <li class="nav-item has-treeview">
                         <a href="#" class="nav-link text-success">
                             <i class="fa-solid fa-money-check-dollar"></i> 
@@ -73,14 +74,14 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="{{ route('lista') }}" class="nav-link text-dark">
+                                <a href="{{ route('cotizacion.lista') }}" class="nav-link text-dark">
                                     <i class="nav-icon fas fa-clipboard-list"></i>
                                     <p>Listas</p>
                                 </a>
                             </li>
                         </ul>
                     </li>
-                   
+
                     <!-- Usuarios -->
                     <li class="nav-item has-treeview">
                         <a href="#" class="nav-link text-success">
@@ -125,13 +126,49 @@
                         </ul>
                     </li>
 
-                    <!-- Roles Mayordomo -->
-                    <li class="nav-item">
-                        <a href="{{ asset('AdminLTE-3.2.0/pages/widgets.html') }}" class="nav-link text-success">
-                            <i class="fa-solid fa-money-check-dollar"></i>
-                            <p>Roles Mayordomo</p>
+                    <!-- Paquetes de Servicios -->
+                    <li class="nav-item has-treeview">
+                        <a href="#" class="nav-link text-success">
+                            <i class="fa-solid fa-boxes-stacked"></i> 
+                            <p>Paquetes de Servicios</p>
                         </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('service_packages.create') }}" class="nav-link text-dark">
+                                    <i class="nav-icon fas fa-edit"></i>
+                                    <p>Ingreso</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('service_packages.index') }}" class="nav-link text-dark">
+                                    <i class="nav-icon fas fa-clipboard-list"></i>
+                                    <p>Listas</p>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
+<!-- Roles Mayordomo (Tipos de Cliente) -->
+<li class="nav-item has-treeview">
+    <a href="#" class="nav-link text-success">
+        <i class="fa-solid fa-user-tag"></i> 
+        <p>Tipos de Cliente</p>
+        <i class="fas fa-angle-left right"></i>
+    </a>
+    <ul class="nav nav-treeview">
+        <li class="nav-item">
+            <a href="{{ route('customer_types.create') }}" class="nav-link text-dark">
+                <i class="nav-icon fas fa-edit"></i>
+                <p>Ingreso</p>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="{{ route('customer_types.index') }}" class="nav-link text-dark">
+                <i class="nav-icon fas fa-clipboard-list"></i>
+                <p>Listas</p>
+            </a>
+        </li>
+    </ul>
+</li>
 
                     <!-- Análisis de Producción -->
                     <li class="nav-item">

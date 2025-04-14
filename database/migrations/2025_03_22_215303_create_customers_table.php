@@ -6,32 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateCustomersTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
         Schema::create('customers', function (Blueprint $table) {
-            $table->id('customers_id');
-            $table->string('solicitante')->nullable(); // Opcional
-            $table->string('contacto');
-            $table->string('telefono');
-            $table->string('nit');
-            $table->string('correo')->nullable(); // Opcional
-            $table->string('tipo_cliente')->default('externo'); // Nuevo campo: interno, externo, trabajador
-            $table->timestamps();
+            $table->id('customers_id'); // Clave primaria, auto_increment
+            $table->string('solicitante')->nullable(); // Solicitante (opcional)
+            $table->string('contacto'); // Nombre de contacto (requerido)
+            $table->string('telefono')->nullable(); // Teléfono (opcional)
+            $table->string('nit')->unique(); // NIT (requerido, único)
+            $table->string('correo')->nullable(); // Correo (opcional)
+            $table->unsignedBigInteger('customer_type_id');
+            $table->timestamps(); // created_at y updated_at
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
-        Schema::dropIfExists('_customers');
+        Schema::dropIfExists('customers');
     }
 }
