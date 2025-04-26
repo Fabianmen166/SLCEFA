@@ -1,8 +1,7 @@
-@extends('layouts.master')
+@extends('layouts.app')
 
 <center><h1>bienvenido instructor</h1> </center>
 @section('content')
-<center>  <img src="{{ asset('images/LogoAgrosoft2.png')}}" width="30%"></center>
 <div class="card-body">
     @if(session('error'))
     <script>

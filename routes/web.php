@@ -5,9 +5,10 @@ use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\ServicePackageController;
+use App\Http\Controllers\ProcessController;
+use App\Http\Controllers\CustomerTypeController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\CustomerTypeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,39 +29,26 @@ Route::get('/', function () {
 // Rutas de autenticación con middleware de redirección por rol
 Auth::routes(['middleware' => 'role.redirect']);
 
-// Rutas para dashboards según roles
+// Rutas protegidas por autenticación
 Route::middleware(['auth'])->group(function () {
-    // Dashboard para el rol "admin"
-    Route::middleware('role:admin')->group(function () {
-        Route::get('/admin', function () {
-            return view('admin.dashboard');
-        })->name('admin.dashboard');
-    });
+    // Dashboards según roles
+    Route::middleware('role:admin')->get('/admin', function () {
+        return view('admin.dashboard');
+    })->name('admin.dashboard');
 
-    // Dashboard para el rol "gestion_calidad"
-    Route::middleware('role:gestion_calidad')->group(function () {
-        Route::get('/gestion_calidad', function () {
-            return view('gestion_calidad.dashboard');
-        })->name('gestion_calidad.dashboard');
-    });
+    Route::middleware('role:gestion_calidad')->get('/gestion_calidad', function () {
+        return view('gestion_calidad.dashboard');
+    })->name('gestion_calidad.dashboard');
 
-    // Dashboard para el rol "personal_tecnico"
-    Route::middleware('role:personal_tecnico')->group(function () {
-        Route::get('/personal_tecnico', function () {
-            return view('personal_tecnico.dashboard');
-        })->name('personal_tecnico.dashboard');
-    });
+    Route::middleware('role:personal_tecnico')->get('/personal_tecnico', function () {
+        return view('personal_tecnico.dashboard');
+    })->name('personal_tecnico.dashboard');
 
-    // Dashboard para el rol "pasante"
-    Route::middleware('role:pasante')->group(function () {
-        Route::get('/pasante', function () {
-            return view('pasante.dashboard');
-        })->name('pasante.dashboard');
-    });
-});
+    Route::middleware('role:pasante')->get('/pasante', function () {
+        return view('pasante.dashboard');
+    })->name('pasante.dashboard');
 
-// Rutas para Usuarios (requiere autenticación)
-Route::middleware(['auth'])->group(function () {
+    // Rutas para Usuarios
     Route::resource('usuarios', UsuariosController::class)->names([
         'index' => 'listab',
         'create' => 'usuarios.create',
@@ -68,10 +56,8 @@ Route::middleware(['auth'])->group(function () {
         'update' => 'usuarios.update',
         'destroy' => 'usuarios.destroy',
     ]);
-});
 
-// Rutas para Clientes (Customers)
-Route::middleware(['auth'])->group(function () {
+    // Rutas para Clientes (Customers)
     Route::resource('customers', CustomersController::class)->names([
         'index' => 'listac',
         'create' => 'customers.create',
@@ -79,10 +65,8 @@ Route::middleware(['auth'])->group(function () {
         'update' => 'customers.update',
         'destroy' => 'customers.destroy',
     ]);
-});
 
-// Rutas para Servicios (Services)
-Route::middleware(['auth'])->group(function () {
+    // Rutas para Servicios (Services)
     Route::resource('services', ServicesController::class)->names([
         'index' => 'listas',
         'create' => 'services.create',
@@ -90,35 +74,18 @@ Route::middleware(['auth'])->group(function () {
         'update' => 'services.update',
         'destroy' => 'services.destroy',
     ]);
-});
 
+    // Rutas para Paquetes de Servicios (Service Packages)
+    Route::prefix('service-packages')->group(function () {
+        Route::get('/', [ServicePackageController::class, 'index'])->name('service_packages.index');
+        Route::get('/create', [ServicePackageController::class, 'create'])->name('service_packages.create');
+        Route::post('/store', [ServicePackageController::class, 'store'])->name('service_packages.store');
+        Route::get('/{service_packages_id}/edit', [ServicePackageController::class, 'edit'])->name('service_packages.edit');
+        Route::put('/{service_packages_id}', [ServicePackageController::class, 'update'])->name('service_packages.update');
+        Route::delete('/{service_packages_id}', [ServicePackageController::class, 'destroy'])->name('service_packages.destroy');
+    });
 
-Route::prefix('cotizaciones')->middleware(['auth'])->group(function () {
-    Route::get('/', [QuoteController::class, 'index'])->name('cotizacion.index');
-    Route::get('/crear', [QuoteController::class, 'create'])->name('cotizacion.create');
-    Route::post('/store', [QuoteController::class, 'store'])->name('cotizacion.store');
-    Route::get('/lista', [QuoteController::class, 'lista'])->name('cotizacion.lista');
-    Route::get('/{quote_id}', [QuoteController::class, 'show'])->name('cotizacion.show');
-    Route::get('/{quote_id}/editar', [QuoteController::class, 'edit'])->name('cotizacion.edit');
-    Route::put('/{quote_id}', [QuoteController::class, 'update'])->name('cotizacion.update');
-    Route::delete('/{quote_id}', [QuoteController::class, 'destroy'])->name('cotizacion.destroy');
-    Route::get('/{quote_id}/upload', [QuoteController::class, 'showUploadForm'])->name('cotizacion.upload'); // Añadida para mostrar formulario
-    Route::post('/{quote_id}/upload', [QuoteController::class, 'upload'])->name('cotizacion.upload.store'); // Cambiado de 'quote.upload' a 'cotizacion.upload.store'
-    Route::get('/crear-minima', [QuoteController::class, 'createMinima'])->name('cotizacion.create_minima');
-    Route::get('/{quote_id}/comprobante', [QuoteController::class, 'comprobante'])->name('cotizacion.comprobante');
-});
-// Rutas para paquetes de servicios
-Route::prefix('service-packages')->middleware(['auth'])->group(function () {
-    Route::get('/', [ServicePackageController::class, 'index'])->name('service_packages.index');
-    Route::get('/create', [ServicePackageController::class, 'create'])->name('service_packages.create');
-    Route::post('/store', [ServicePackageController::class, 'store'])->name('service_packages.store');
-    Route::get('/{service_packages_id}/edit', [ServicePackageController::class, 'edit'])->name('service_packages.edit');
-    Route::put('/{service_packages_id}', [ServicePackageController::class, 'update'])->name('service_packages.update');
-    Route::delete('/{service_packages_id}', [ServicePackageController::class, 'destroy'])->name('service_packages.destroy');
-});
-
-// Rutas para Tipos de Cliente (CustomerType)
-Route::middleware(['auth'])->group(function () {
+    // Rutas para Tipos de Cliente (Customer Types)
     Route::resource('customer-types', CustomerTypeController::class)->names([
         'index' => 'customer_types.index',
         'create' => 'customer_types.create',
@@ -127,4 +94,46 @@ Route::middleware(['auth'])->group(function () {
         'update' => 'customer_types.update',
         'destroy' => 'customer_types.destroy',
     ]);
+
+    // Ruta para Procesos Abiertos
+    Route::get('/cotizaciones/process', [ProcessController::class, 'index'])->name('cotizacion.process.index');
+
+    // Rutas para Cotizaciones y Procesos
+    Route::prefix('cotizaciones')->group(function () {
+        // Cotizaciones
+        Route::get('cotizaciones', [QuoteController::class, 'index'])->name('cotizacion.index');
+    Route::get('cotizaciones/lista', [QuoteController::class, 'lista'])->name('cotizacion.lista');
+    Route::get('cotizaciones/create', [QuoteController::class, 'create'])->name('cotizacion.create');
+    Route::post('cotizaciones', [QuoteController::class, 'store'])->name('cotizacion.store');
+    Route::get('cotizaciones/cotizaciones/{quote_id}', [QuoteController::class, 'show'])->name('cotizacion.show');
+    Route::get('cotizaciones/{id}/editar', [QuoteController::class, 'edit'])->name('cotizacion.edit');
+    Route::put('cotizaciones/{id}', [QuoteController::class, 'update'])->name('cotizacion.update');
+    Route::delete('cotizaciones/{id}', [QuoteController::class, 'destroy'])->name('cotizacion.destroy');
+    Route::post('cotizaciones/{id}/upload', [QuoteController::class, 'upload'])->name('cotizacion.upload');
+    Route::get('cotizaciones/{id}/comprobante', [QuoteController::class, 'comprobante'])->name('cotizacion.comprobante');
+    Route::get('cotizaciones/{id}/upload-form', [QuoteController::class, 'showUploadForm'])->name('cotizacion.show_upload_form');
+        // Procesos
+        Route::post('/{quote}/start-process', [ProcessController::class, 'start'])->name('cotizacion.process.start');
+        Route::get('/process/{process}', [ProcessController::class, 'show'])->name('cotizacion.process.show');
+        // routes/web.php
+Route::delete('/cotizaciones/process/{process_id}', [ProcessController::class, 'destroy'])->name('cotizacion.process.destroy');
+Route::post('/cotizaciones/process/{process_id}/archive', [ProcessController::class, 'archive'])->name('cotizacion.process.archive');
+    });
+
+    // Rutas para Procesos (Análisis Técnico y Revisión)
+    Route::middleware('role:personal_tecnico')->group(function () {
+        Route::get('/processes/technical', [ProcessController::class, 'technicalIndex'])->name('process.technical_index');
+        Route::get('/process/technical/{process_id}', [ProcessController::class, 'technicalAnalysis'])->name('process.technical_analysis');
+        Route::post('/process/{process_id}/service/{service_id}/analysis', [ProcessController::class, 'storeAnalysis'])->name('process.store_analysis');
+        Route::get('/process/edit-analysis/{analysis_id}', [ProcessController::class, 'editAnalysis'])->name('process.edit_analysis');
+        Route::post('/process/update-analysis/{analysis_id}', [ProcessController::class, 'updateAnalysis'])->name('process.update_analysis');
+    });
+
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/processes/review', [ProcessController::class, 'indexForReview'])->name('process.review_index');
+        Route::get('/process/review/{analysis_id}', [ProcessController::class, 'reviewAnalysis'])->name('process.review_analysis');
+        Route::post('/process/review/{analysis_id}', [ProcessController::class, 'storeReview'])->name('process.store_review');
+        // routes/web.php
+Route::get('/cotizaciones/process/{process_id}/results-pdf', [ProcessController::class, 'generateResultsPDF'])->name('cotizacion.process.results_pdf');
+    });
 });

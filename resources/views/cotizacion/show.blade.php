@@ -1,0 +1,103 @@
+@extends('layouts.master')
+
+@section('contenido')
+    <center>
+        <img src="{{ asset('images/LogoAgrosoft2.png') }}" width="30%">
+    </center>
+
+    <div class="card-body">
+        @if (session('error'))
+            <div class="alert alert-danger">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        @if (session('success'))
+            <div class="alert alert-success">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        <br><br>
+
+        <center>
+            <div class="container">
+                <div class="card">
+                    <h5 class="card-header">Detalles de la Cotización #{{ $quote->quote_id ?? 'N/A' }}</h5>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Información del Cliente</h6>
+                                <p><strong>NIT:</strong> {{ $quote->customer->nit ?? 'N/A' }}</p>
+                                <p><strong>Solicitante:</strong> {{ $quote->customer->solicitante ?? 'N/A' }}</p>
+                                <p><strong>Tipo de Cliente:</strong> {{ ucfirst($quote->customer->tipo_cliente) ?? 'N/A' }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Información de la Cotización</h6>
+                                <p><strong>ID de Cotización:</strong> {{ $quote->quote_id }}</p>
+                                <p><strong>Creado por:</strong> {{ $quote->user->name ?? 'N/A' }}</p>
+                                <p><strong>Total:</strong> {{ number_format($quote->total, 2) }}</p>
+                                @if ($quote->archivo)
+                                    <p><strong>Comprobante:</strong> <a href="{{ Storage::url('comprobantes/' . $quote->archivo) }}" target="_blank">Ver Comprobante</a></p>
+                                @else
+                                    <p><strong>Comprobante:</strong> No subido</p>
+                                @endif
+                            </div>
+                        </div>
+
+                        <h6 class="mt-4">Servicios y Paquetes</h6>
+                        @if ($quote->quoteServices->isNotEmpty())
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Descripción</th>
+                                        <th>Cantidad</th>
+                                        <th>Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($quote->quoteServices as $quoteService)
+                                        @if ($quoteService->services_id && $quoteService->service)
+                                            <tr>
+                                                <td>Servicio</td>
+                                                <td>{{ $quoteService->service->descripcion ?? 'Servicio no encontrado' }}</td>
+                                                <td>{{ $quoteService->cantidad }}</td>
+                                                <td>{{ number_format($quoteService->subtotal, 2) }}</td>
+                                            </tr>
+                                        @elseif ($quoteService->service_packages_id && $quoteService->servicePackage)
+                                            <tr>
+                                                <td>Paquete</td>
+                                                <td>{{ $quoteService->servicePackage->nombre ?? 'Paquete no encontrado' }}</td>
+                                                <td>{{ $quoteService->cantidad }}</td>
+                                                <td>{{ number_format($quoteService->subtotal, 2) }}</td>
+                                            </tr>
+                                            @if ($quoteService->servicePackage && $quoteService->servicePackage->included_services)
+                                                <tr>
+                                                    <td colspan="4">
+                                                        <strong>Servicios Incluidos:</strong>
+                                                        <ul>
+                                                            @foreach ($quoteService->servicePackage->included_services as $includedService)
+                                                                <li>{{ $includedService }}</li>
+                                                            @endforeach
+                                                        </ul>
+                                                    </td>
+                                                </tr>
+                                            @endif
+                                        @endif
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        @else
+                            <p>Sin servicios ni paquetes.</p>
+                        @endif
+
+                        <a href="{{ route('cotizacion.index') }}" class="btn btn-secondary">Volver</a>
+                        <a href="{{ route('cotizacion.comprobante', $quote->quote_id) }}" class="btn btn-primary">Descargar PDF</a>
+                    </div>
+                </div>
+                <a href="{{ route('gestion_calidad.dashboard') }}" class="back-btn">Volver al Dashboard</a>
+            </div>
+        </center>
+    </div>
+@endsection

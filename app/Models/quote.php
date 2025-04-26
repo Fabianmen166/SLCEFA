@@ -1,5 +1,6 @@
 <?php
 
+// app/Models/Quote.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,9 +10,9 @@ class Quote extends Model
 {
     use HasFactory;
 
-    protected $table = 'quotes'; // Asegúrate de que sea 'quotes' (plural)
+    protected $table = 'quotes';
     protected $primaryKey = 'quote_id';
-    public $incrementing = false; // Porque quote_id es una cadena (string)
+    public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -32,15 +33,27 @@ class Quote extends Model
         return $this->belongsTo(Customer::class, 'customers_id');
     }
 
-    public function services()
+    public function quoteServices()
     {
-        return $this->belongsToMany(service::class, 'quote_services', 'quote_id', 'services_id')
-                    ->withPivot('cantidad', 'subtotal', 'service_packages_id');
+        return $this->hasMany(QuoteService::class, 'quote_id', 'quote_id');
     }
 
+    public function processes()
+    {
+        return $this->hasMany(Process::class, 'quote_id', 'quote_id');
+    }
+    public function services()
+    {
+        return $this->belongsToMany(Service::class, 'quote_services', 'quote_id', 'services_id')
+                    ->withPivot('cantidad', 'subtotal', 'service_packages_id')
+                    ->withTimestamps();
+    }
+
+    // Nueva relación para ServicePackages
     public function servicePackages()
     {
         return $this->belongsToMany(ServicePackage::class, 'quote_services', 'quote_id', 'service_packages_id')
-                    ->withPivot('cantidad', 'subtotal', 'services_id');
+                    ->withPivot('cantidad', 'subtotal', 'services_id')
+                    ->withTimestamps();
     }
 }

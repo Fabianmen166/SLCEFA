@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer; // Importar el modelo Customer
 use App\Models\CustomerType;
 use App\Models\ServicePackage;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -23,31 +24,26 @@ class CustomersController extends Controller
     }
 
     public function store(Request $request)
-    {
-        try {
-            $validated = $request->validate([
-                'nombre' => 'required|string|unique:service_packages,nombre',
-                'precio' => 'required|numeric|min:0',
-                'acreditado' => 'boolean',
-                'services' => 'nullable|array', // Cambia a 'services'
-                'services.*' => 'exists:services,services_id', // Valida cada ID en la tabla services
-            ]);
-    
-            $servicePackage = new ServicePackage();
-            $servicePackage->nombre = $validated['nombre'];
-            $servicePackage->precio = $validated['precio'];
-            $servicePackage->acreditado = $request->has('acreditado');
-            $servicePackage->included_services = $validated['services'] ?? []; // Asigna los servicios validados
-            $servicePackage->save();
-    
-            $success = 'Paquete de servicios creado exitosamente.';
-            return redirect()->route('service_packages.index')->with('success', $success);
-        } catch (\Exception $e) {
-            Log::error('Error al crear paquete de servicios: ' . $e->getMessage());
-            $error = 'Error al crear el paquete de servicios: ' . $e->getMessage();
-            return view('service_packages.create', compact('error'));
-        }
+{
+    try {
+        $validatedData = $request->validate([
+            'solicitante' => 'nullable|string|max:255',
+            'contacto' => 'required|string|max:255',
+            'telefono' => 'required|string|max:20',
+            'nit' => 'required|string|max:50|unique:customers,nit',
+            'correo' => 'nullable|email|max:255',
+            'customer_type_id' => 'required|exists:customer_types,customer_type_id',
+        ]);
+
+        Customer::create($validatedData);
+
+        return redirect()->route('listac')->with('success', 'Cliente creado exitosamente.');
+    } catch (\Exception $e) {
+        Log::error('Error al crear cliente: ' . $e->getMessage());
+        $customerTypes = CustomerType::all(); // Definir $customerTypes aquí
+        return view('customers.create', compact('customerTypes'))->with('error', 'Error al crear el cliente: ' . $e->getMessage())->withInput();
     }
+}
 
     public function edit($id)
     {

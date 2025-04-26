@@ -1,93 +1,104 @@
 @extends('layouts.master')
 
 @section('contenido')
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Lista de Cotizaciones</h1>
-                </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{ route('gestion_calidad.dashboard') }}">Inicio</a></li>
-                        <li class="breadcrumb-item active">Cotizaciones</li>
-                    </ol>
-                </div>
+    <center>
+        <img src="{{ asset('images/LogoAgrosoft2.png') }}" width="30%">
+    </center>
+
+    <div class="card-body">
+        @if (session('error'))
+            <div class="alert alert-danger">
+                {{ session('error') }}
             </div>
-        </div>
-    </div>
+        @endif
 
-    <section class="content">
-        <div class="container-fluid">
-            @if (session('success'))
-                <div class="alert alert-success alert-dismissible">
-                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-                    {{ session('success') }}
-                </div>
-            @endif
+        @if (session('success'))
+            <div class="alert alert-success">
+                {{ session('success') }}
+            </div>
+        @endif
 
-            @if (session('error'))
-                <div class="alert alert-danger alert-dismissible">
-                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-                    {{ session('error') }}
-                </div>
-            @endif
+        <br><br>
 
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Cotizaciones</h3>
-                    <div class="card-tools">
-                        <a href="{{ route('cotizacion.create') }}" class="btn btn-success btn-sm">
-                            <i class="fas fa-plus"></i> Crear Nueva Cotización
-                        </a>
+        <center>
+            <div class="container">
+                <div class="card">
+                    <h5 class="card-header">Lista de Cotizaciones</h5>
+                    <div class="card-body">
+                        <form method="GET" action="{{ route('cotizacion.index') }}" class="mb-4">
+                            <div class="input-group">
+                                <input type="text" class="form-control" name="nit" placeholder="Buscar por NIT o ID de cotización" value="{{ request('nit') }}">
+                                <button class="btn btn-primary" type="submit">Buscar</button>
+                            </div>
+                        </form>
+
+                        <a href="{{ route('cotizacion.create') }}" class="btn btn-success mb-3">Crear Nueva Cotización</a>
+
+                        @if ($quotes->isNotEmpty())
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>ID Cotización</th>
+                                            <th>Cliente (NIT)</th>
+                                            <th>Tipo de Solicitante</th>
+                                            <th>Servicios y Paquetes</th>
+                                            <th>Total</th>
+                                            <th>Creado por</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($quotes as $quote)
+                                            <tr>
+                                                <td>{{ $quote->quote_id ?? 'N/A' }}</td>
+                                                <td>{{ $quote->customer->nit ?? 'N/A' }}</td>
+                                                <td>{{ $quote->customer->solicitante ?? 'N/A' }}</td>
+                                                <td>
+                                                    @if ($quote->quoteServices->isNotEmpty())
+                                                        <ul>
+                                                            @foreach ($quote->quoteServices as $quoteService)
+                                                                @if ($quoteService->services_id && $quoteService->service)
+                                                                    <li>
+                                                                        {{ $quoteService->service->descripcion ?? 'Servicio no encontrado' }} (Cantidad: {{ $quoteService->cantidad }})
+                                                                    </li>
+                                                                @elseif ($quoteService->service_packages_id && $quoteService->servicePackage)
+                                                                    <li>
+                                                                        {{ $quoteService->servicePackage->nombre ?? 'Paquete no encontrado' }} (Cantidad: {{ $quoteService->cantidad }})
+                                                                    </li>
+                                                                @endif
+                                                            @endforeach
+                                                        </ul>
+                                                    @else
+                                                        Sin servicios ni paquetes
+                                                    @endif
+                                                </td>
+                                                <td>{{ number_format($quote->total, 2) }}</td>
+                                                <td>{{ $quote->user->name ?? 'N/A' }}</td>
+                                                <td>
+                                                    <a href="{{ route('cotizacion.show', $quote->quote_id) }}" class="btn btn-info btn-sm">Ver</a>
+                                                    <a href="{{ route('cotizacion.edit', $quote->quote_id) }}" class="btn btn-warning btn-sm">Editar</a>
+                                                    <form action="{{ route('cotizacion.destroy', $quote->quote_id) }}" method="POST" style="display:inline;">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar esta cotización?')">Eliminar</button>
+                                                    </form>
+                                                    <a href="{{ route('cotizacion.comprobante', $quote->quote_id) }}" class="btn btn-secondary btn-sm">Descargar PDF</a>
+                                                    <a href="{{ route('cotizacion.show_upload_form', $quote->quote_id) }}" class="btn btn-primary btn-sm">Subir Comprobante</a>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <p>No se encontraron cotizaciones.</p>
+                        @endif
+
+                        <a href="{{ route('gestion_calidad.dashboard') }}" class="back-btn">Volver al Dashboard</a>
                     </div>
                 </div>
-                <div class="card-body">
-                    @if($quotes->isEmpty())
-                        <p>No hay cotizaciones disponibles.</p>
-                    @else
-                        <table class="table table-bordered table-striped">
-                            <thead>
-                                <tr>
-                                    <th>ID Cotización</th>
-                                    <th>Cliente</th>
-                                    <th>Total</th>
-                                    <th>Usuario</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($quotes as $quote)
-                                    <tr>
-                                        <td>{{ $quote->quote_id }}</td>
-                                        <td>{{ $quote->customer->contacto ?? 'Sin cliente' }}</td>
-                                        <td>{{ number_format($quote->total, 2) }}</td>
-                                        <td>{{ $quote->user->name ?? 'Sin usuario' }}</td>
-                                        <td>
-                                            <a href="{{ route('cotizacion.edit', $quote->quote_id) }}" class="btn btn-primary btn-sm">
-                                                <i class="fas fa-edit"></i> Editar
-                                            </a>
-                                            <a href="{{ route('cotizacion.upload', $quote->quote_id) }}" class="btn btn-info btn-sm">
-                                                <i class="fas fa-upload"></i> Subir Comprobante
-                                            </a>
-                                            <a href="{{ route('cotizacion.comprobante', $quote->quote_id) }}" class="btn btn-success btn-sm">
-                                                <i class="fas fa-file-pdf"></i> Generar PDF
-                                            </a>
-                                            <form action="{{ route('cotizacion.destroy', $quote->quote_id) }}" method="POST" style="display:inline;">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar esta cotización?')">
-                                                    <i class="fas fa-trash"></i> Eliminar
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    @endif
-                </div>
             </div>
-        </div>
-    </section>
+        </center>
+    </div>
 @endsection

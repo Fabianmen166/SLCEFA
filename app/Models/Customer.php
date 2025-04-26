@@ -11,6 +11,8 @@ class Customer extends Model
 
     protected $table = 'customers';
     protected $primaryKey = 'customers_id';
+    protected $keyType = 'int';
+    public $incrementing = true;
 
     protected $fillable = [
         'solicitante',
@@ -18,16 +20,17 @@ class Customer extends Model
         'telefono',
         'nit',
         'correo',
-        'customer_type_id', // Nuevo campo
+        'tipo_cliente',
+        'customer_type_id',
     ];
-
-    public function quotes()
-    {
-        return $this->hasMany(Quote::class, 'customers_id');
-    }
 
     public function customerType()
     {
-        return $this->belongsTo(CustomerType::class, 'customer_type_id');
+        return $this->belongsTo(CustomerType::class, 'customer_type_id', 'customer_type_id');
+    }
+
+    public function quotes()
+    {
+        return $this->hasMany(Quote::class, 'customers_id', 'customers_id');
     }
 }

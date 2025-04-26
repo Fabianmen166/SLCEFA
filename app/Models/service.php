@@ -11,6 +11,8 @@ class Service extends Model
 
     protected $table = 'services';
     protected $primaryKey = 'services_id';
+    protected $keyType = 'int';
+    public $incrementing = true;
 
     protected $fillable = [
         'descripcion',
@@ -18,9 +20,8 @@ class Service extends Model
         'acreditado',
     ];
 
-    public function quotes()
+    public function quoteServices()
     {
-        return $this->belongsToMany(Quote::class, 'quote_services', 'services_id', 'quote_id')
-                    ->withPivot('cantidad', 'subtotal', 'service_packages_id');
+        return $this->hasMany(QuoteService::class, 'services_id', 'services_id');
     }
 }

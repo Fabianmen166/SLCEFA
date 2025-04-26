@@ -1,10 +1,8 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Service;
 
 class ServicePackage extends Model
 {
@@ -12,6 +10,8 @@ class ServicePackage extends Model
 
     protected $table = 'service_packages';
     protected $primaryKey = 'service_packages_id';
+    protected $keyType = 'int';
+    public $incrementing = true;
 
     protected $fillable = [
         'nombre',
@@ -20,27 +20,34 @@ class ServicePackage extends Model
         'included_services',
     ];
 
-    public function quotes()
+    public function quoteServices()
     {
-        return $this->belongsToMany(Quote::class, 'quote_services', 'service_packages_id', 'quote_id')
-                    ->withPivot('cantidad', 'subtotal', 'services_id');
+        return $this->hasMany(QuoteService::class, 'service_packages_id', 'service_packages_id');
     }
 
-    public function getIncludedServicesAttribute($value)
+    public function getIncludedServicesAttribute()
     {
-        $serviceIds = $value ? json_decode($value, true) : [];
+        $serviceIds = $this->getRawOriginal('included_services') ? json_decode($this->getRawOriginal('included_services'), true) : [];
         if (empty($serviceIds)) {
-            return [];
+            return collect([]);
         }
 
-        // Corrección: "service" debe ser "Service" (respetar mayúsculas)
-        return Service::whereIn('services_id', $serviceIds)
-                      ->pluck('descripcion')
-                      ->toArray();
+        return Service::whereIn('services_id', $serviceIds)->get();
+    }
+
+    public function getIncludedServiceIdsAttribute()
+    {
+        return $this->getRawOriginal('included_services') ? json_decode($this->getRawOriginal('included_services'), true) : [];
     }
 
     public function setIncludedServicesAttribute($value)
     {
         $this->attributes['included_services'] = $value ? json_encode($value) : null;
+    }
+
+    // Optionally, keep this method for compatibility, but it's not needed for the PDF
+    public function getIncludedServiceObjects()
+    {
+        return $this->included_services;
     }
 }

@@ -1,11 +1,15 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use App\Models\Quote;
+
 use App\Models\Customer;
 use App\Models\Service;
 use App\Models\ServicePackage;
+use App\Models\QuoteService;
+use Illuminate\Support\Facades\DB;
+use App\Models\Process;
+use App\Models\Quote;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -16,21 +20,22 @@ class QuoteController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Quote::with(['customer', 'services', 'servicePackages', 'user']);
-
+        $query = Quote::with(['customer', 'user', 'quoteServices.service', 'quoteServices.servicePackage']);
+    
         if ($request->filled('nit')) {
             $query->whereHas('customer', function ($q) use ($request) {
                 $q->where('nit', 'like', '%' . $request->nit . '%');
             })->orWhere('quote_id', 'like', '%' . $request->nit . '%');
         }
-
+    
         $quotes = $query->get();
-        return view('cotizacion.index', compact('quotes')); // Ajusta la vista según tu estructura
+    
+        return view('cotizacion.index', compact('quotes'));
     }
 
-    public function lista(Request $request) // Añadido para 'cotizacion.lista'
+    public function lista(Request $request)
     {
-        return $this->index($request); // Reutiliza la lógica de index
+        return $this->index($request);
     }
 
     public function create()
@@ -38,129 +43,17 @@ class QuoteController extends Controller
         $customers = Customer::all();
         $services = Service::all();
         $servicePackages = ServicePackage::all();
-        return view('cotizacion.create', compact('customers', 'services', 'servicePackages')); // Ajusta la vista
+        return view('cotizacion.create', compact('customers', 'services', 'servicePackages'));
     }
 
     public function store(Request $request)
-{
-    if (!Auth::check()) {
-        return back()->with('error', 'Debes estar autenticado para crear una cotización.');
-    }
-
-    $validator = Validator::make($request->all(), [
-        'quote_id' => 'required|string|unique:quotes,quote_id',
-        'customers_id' => 'required|exists:customers,customers_id',
-        'services' => 'nullable|array',
-        'services.*' => 'nullable|exists:services,services_id',
-        'quantities' => 'nullable|array',
-        'quantities.*' => 'nullable|integer|min:1',
-        'service_packages' => 'nullable|array',
-        'service_packages.*' => 'nullable|exists:service_packages,service_packages_id',
-        'package_quantities' => 'nullable|array',
-        'package_quantities.*' => 'nullable|integer|min:1',
-    ]);
-
-    if (empty($request->input('services', [])) && empty($request->input('service_packages', []))) {
-        $validator->errors()->add('services', 'Debes seleccionar al menos un servicio o un paquete de servicios.');
-    }
-
-    if ($validator->fails()) {
-        return back()->withErrors($validator)->withInput();
-    }
-
-    try {
-        $validatedData = $validator->validated();
-        $customer = Customer::with('customerType')->findOrFail($validatedData['customers_id']);
-        $total = 0;
-        $servicesData = [];
-        $servicePackagesData = [];
-
-        // Procesar servicios
-        if (!empty($validatedData['services'])) {
-            foreach ($validatedData['services'] as $index => $serviceId) {
-                if ($serviceId && isset($validatedData['quantities'][$index]) && $validatedData['quantities'][$index] > 0) {
-                    $service = Service::findOrFail($serviceId);
-                    $quantity = (int) $validatedData['quantities'][$index];
-                    $subtotal = $service->precio * $quantity;
-                    $total += $subtotal;
-                    $servicesData[$serviceId] = [
-                        'cantidad' => $quantity,
-                        'subtotal' => $subtotal,
-                        'service_packages_id' => null,
-                    ];
-                }
-            }
-        }
-
-        // Procesar paquetes
-        if (!empty($validatedData['service_packages'])) {
-            foreach ($validatedData['service_packages'] as $index => $packageId) {
-                if ($packageId && isset($validatedData['package_quantities'][$index]) && $validatedData['package_quantities'][$index] > 0) {
-                    $package = ServicePackage::findOrFail($packageId);
-                    $quantity = (int) $validatedData['package_quantities'][$index];
-                    $subtotal = $package->precio * $quantity;
-                    $total += $subtotal;
-                    $servicePackagesData[$packageId] = [
-                        'cantidad' => $quantity,
-                        'subtotal' => $subtotal,
-                        'services_id' => null,
-                    ];
-                }
-            }
-        }
-
-        $discount = $customer->customerType->discount_percentage / 100 ?? 0;
-        if ($discount > 0) {
-            $total = $total * (1 - $discount);
-            foreach ($servicesData as &$data) {
-                $data['subtotal'] = $data['subtotal'] * (1 - $discount);
-            }
-            foreach ($servicePackagesData as &$data) {
-                $data['subtotal'] = $data['subtotal'] * (1 - $discount);
-            }
-        }
-
-        $quote = new Quote();
-        $quote->quote_id = $validatedData['quote_id'];
-        $quote->customers_id = $validatedData['customers_id'];
-        $quote->total = $total;
-        $quote->user_id = Auth::id();
-        $quote->save();
-
-        if (!empty($servicesData)) {
-            $quote->services()->sync($servicesData);
-        }
-
-        if (!empty($servicePackagesData)) {
-            $quote->servicePackages()->sync($servicePackagesData);
-        }
-
-        return redirect()->route('cotizacion.index')->with('success', 'Cotización creada exitosamente.');
-    } catch (\Exception $e) {
-        Log::error('Error al crear cotización: ' . $e->getMessage());
-        return back()->with('error', 'Error al crear la cotización: ' . $e->getMessage())->withInput();
-    }
-}
-
-    public function show($quote_id)
     {
-        $quote = Quote::with(['customer', 'services', 'servicePackages', 'user'])->findOrFail($quote_id);
-        return view('cotizaciones.show', compact('quote')); // Añade esta vista si la necesitas
-    }
-
-    public function edit($quote_id)
-    {
-        $quote = Quote::with(['services', 'servicePackages'])->findOrFail($quote_id);
-        $customers = Customer::all();
-        $services = Service::all();
-        $servicePackages = ServicePackage::all();
-        return view('cotizacion.edit', compact('quote', 'customers', 'services', 'servicePackages'));
-    }
-
-    public function update(Request $request, $quote_id)
-    {
+        if (!Auth::check()) {
+            return back()->with('error', 'Debes estar autenticado para crear una cotización.');
+        }
+    
         $validator = Validator::make($request->all(), [
-            'quote_id' => 'required|string|unique:quotes,quote_id,' . $quote_id . ',quote_id',
+            'quote_id' => 'required|string|unique:quotes,quote_id',
             'customers_id' => 'required|exists:customers,customers_id',
             'services' => 'nullable|array',
             'services.*' => 'nullable|exists:services,services_id',
@@ -172,52 +65,286 @@ class QuoteController extends Controller
             'package_quantities.*' => 'nullable|integer|min:1',
         ]);
     
-        if (empty($request->input('services', [])) && empty($request->input('service_packages', []))) {
-            $validator->errors()->add('services', 'Debes seleccionar al menos un servicio o un paquete de servicios.');
+        $hasServiceOrPackage = false;
+        $services = array_filter($request->input('services', []), fn($value) => !empty($value));
+        $quantities = $request->input('quantities', []);
+        $servicePackages = array_filter($request->input('service_packages', []), fn($value) => !empty($value));
+        $packageQuantities = $request->input('package_quantities', []);
+    
+        Log::info('Datos recibidos del formulario:', [
+            'services' => $services,
+            'quantities' => $quantities,
+            'service_packages' => $servicePackages,
+            'package_quantities' => $packageQuantities,
+        ]);
+    
+        foreach ($services as $index => $serviceId) {
+            if ($serviceId && isset($quantities[$index]) && $quantities[$index] > 0) {
+                $hasServiceOrPackage = true;
+                break;
+            }
+        }
+    
+        foreach ($servicePackages as $index => $packageId) {
+            if ($packageId && isset($packageQuantities[$index]) && $packageQuantities[$index] > 0) {
+                $hasServiceOrPackage = true;
+                break;
+            }
+        }
+    
+        if (!$hasServiceOrPackage) {
+            $validator->errors()->add('services', 'Debes seleccionar al menos un servicio o un paquete de servicios con una cantidad válida.');
         }
     
         if ($validator->fails()) {
+            Log::error('Errores de validación:', $validator->errors()->toArray());
             return back()->withErrors($validator)->withInput();
         }
     
         try {
             $validatedData = $validator->validated();
-            $quote = Quote::findOrFail($quote_id);
             $customer = Customer::with('customerType')->findOrFail($validatedData['customers_id']);
             $total = 0;
-            $servicesData = [];
-            $servicePackagesData = [];
     
-            // Procesar servicios
-            if (!empty($validatedData['services'])) {
-                foreach ($validatedData['services'] as $serviceId) {
-                    if ($serviceId && isset($validatedData['quantities'][$serviceId]) && $validatedData['quantities'][$serviceId] > 0) {
+            $quote = new Quote();
+            $quote->quote_id = $validatedData['quote_id'];
+            $quote->customers_id = $validatedData['customers_id'];
+            $quote->user_id = Auth::id();
+            $quote->total = 0; // Will be updated later
+            $quote->save();
+    
+            Log::info('Cotización creada con ID: ' . $quote->id . ', quote_id: ' . $quote->quote_id);
+    
+            // Guardar servicios
+            if (!empty($services)) {
+                foreach ($services as $index => $serviceId) {
+                    $quantity = $quantities[$index] ?? 1;
+                    if ($serviceId && $quantity > 0) {
                         $service = Service::findOrFail($serviceId);
-                        $quantity = (int) $validatedData['quantities'][$serviceId];
                         $subtotal = $service->precio * $quantity;
                         $total += $subtotal;
-                        $servicesData[$serviceId] = [
+                        $quoteService = QuoteService::create([
+                            'quote_id' => $quote->quote_id,
+                            'services_id' => $serviceId,
+                            'service_packages_id' => null,
                             'cantidad' => $quantity,
                             'subtotal' => $subtotal,
+                        ]);
+                        Log::info('Servicio registrado:', [
+                            'quote_id' => $quote->quote_id,
+                            'services_id' => $serviceId,
+                            'cantidad' => $quantity,
+                            'subtotal' => $subtotal,
+                            'quote_service_id' => $quoteService->id,
+                        ]);
+                    } else {
+                        Log::warning('Servicio no registrado (ID o cantidad inválidos):', [
+                            'serviceId' => $serviceId,
+                            'quantity' => $quantity,
+                        ]);
+                    }
+                }
+            } else {
+                Log::warning('No se recibieron servicios para registrar.');
+            }
+    
+            // Guardar paquetes
+            if (!empty($servicePackages)) {
+                foreach ($servicePackages as $index => $packageId) {
+                    $quantity = $packageQuantities[$index] ?? 1;
+                    if ($packageId && $quantity > 0) {
+                        $package = ServicePackage::findOrFail($packageId);
+                        $subtotal = $package->precio * $quantity;
+                        $total += $subtotal;
+                        $quoteService = QuoteService::create([
+                            'quote_id' => $quote->quote_id,
+                            'services_id' => null,
+                            'service_packages_id' => $packageId,
+                            'cantidad' => $quantity,
+                            'subtotal' => $subtotal,
+                        ]);
+                        Log::info('Paquete registrado:', [
+                            'quote_id' => $quote->quote_id,
+                            'service_packages_id' => $packageId,
+                            'cantidad' => $quantity,
+                            'subtotal' => $subtotal,
+                            'quote_service_id' => $quoteService->id,
+                        ]);
+                    } else {
+                        Log::warning('Paquete no registrado (ID o cantidad inválidos):', [
+                            'packageId' => $packageId,
+                            'quantity' => $quantity,
+                        ]);
+                    }
+                }
+            } else {
+                Log::warning('No se recibieron paquetes para registrar.');
+            }
+    
+            $discount = $customer->customerType->discount_percentage / 100 ?? 0;
+            if ($discount > 0) {
+                $total = $total * (1 - $discount);
+            }
+    
+            $quote->total = $total;
+            $quote->save();
+    
+            $process = new Process();
+            $process->process_id = 'PRC-' . time();
+            $process->quote_id = $quote->id;
+            $process->status = 'pending';
+            $process->save();
+    
+            return redirect()->route('cotizacion.index')->with('success', 'Cotización creada exitosamente.');
+        } catch (\Exception $e) {
+            Log::error('Error al crear cotización: ' . $e->getMessage());
+            return back()->with('error', 'Error al crear la cotización: ' . $e->getMessage())->withInput();
+        }
+    }
+
+    public function show($quote_id)
+    {
+        $quote = Quote::with(['customer', 'user', 'quoteServices.service', 'quoteServices.servicePackage'])->findOrFail($quote_id);
+        return view('cotizacion.show', compact('quote'));
+    }
+
+    public function edit(Quote $id)
+    {
+        try {
+            $quote = $id->load(['quoteServices.service', 'quoteServices.servicePackage']);
+            $customers = Customer::all();
+            $services = Service::all();
+            $servicePackages = ServicePackage::all();
+            return view('cotizacion.edit', compact('quote', 'customers', 'services', 'servicePackages'));
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error("Cotización no encontrada para ID: {$id->quote_id}. Error: " . $e->getMessage());
+            return redirect()->route('cotizacion.index')->with('error', 'No se encontró la cotización con ID ' . $id->quote_id . '. Verifica que exista.');
+        } catch (\Exception $e) {
+            Log::error("Error al cargar la cotización con ID: {$id->quote_id}. Error: " . $e->getMessage());
+            return redirect()->route('cotizacion.index')->with('error', 'Error al cargar la cotización: ' . $e->getMessage());
+        }
+    }
+
+
+
+    public function update(Request $request, $id)
+    {
+        try {
+            if (!Auth::check()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Debes estar autenticado para actualizar una cotización.'
+                ], 403);
+            }
+    
+            Log::info('Updating quote with ID: ' . $id);
+    
+            $quote = Quote::where('quote_id', $id)->firstOrFail();
+            Log::info('Quote found: ' . $quote->quote_id);
+    
+            $validator = Validator::make($request->all(), [
+                'quote_id' => 'required|string|unique:quotes,quote_id,' . $quote->quote_id . ',quote_id',
+                'customers_id' => 'required|exists:customers,customers_id',
+                'services' => 'nullable|array',
+                'services.*' => 'nullable|exists:services,services_id',
+                'quantities' => 'nullable|array',
+                'quantities.*' => 'nullable|integer|min:1',
+                'service_packages' => 'nullable|array',
+                'service_packages.*' => 'nullable|exists:service_packages,service_packages_id',
+                'package_quantities' => 'nullable|array',
+                'package_quantities.*' => 'nullable|integer|min:1',
+            ]);
+    
+            $hasServiceOrPackage = false;
+            $services = $request->input('services', []);
+            $quantities = $request->input('quantities', []);
+            $servicePackages = $request->input('service_packages', []);
+            $packageQuantities = $request->input('package_quantities', []);
+    
+            foreach ($services as $index => $serviceId) {
+                if ($serviceId && isset($quantities[$index]) && $quantities[$index] > 0) {
+                    $hasServiceOrPackage = true;
+                    break;
+                }
+            }
+    
+            foreach ($servicePackages as $index => $packageId) {
+                if ($packageId && isset($packageQuantities[$index]) && $packageQuantities[$index] > 0) {
+                    $hasServiceOrPackage = true;
+                    break;
+                }
+            }
+    
+            if (!$hasServiceOrPackage) {
+                $validator->errors()->add('services', 'Debes seleccionar al menos un servicio o un paquete de servicios con una cantidad válida.');
+            }
+    
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Errores de validación.',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+    
+            $validatedData = $validator->validated();
+            $customer = Customer::with('customerType')->findOrFail($validatedData['customers_id']);
+            $total = 0;
+    
+            // Disable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+    
+            $oldQuoteId = $quote->quote_id;
+            $newQuoteId = $validatedData['quote_id'];
+    
+            // Update quote_id in quote_services first
+            if ($oldQuoteId !== $newQuoteId) {
+                QuoteService::where('quote_id', $oldQuoteId)->update(['quote_id' => $newQuoteId]);
+            }
+    
+            // Update the quotes table
+            $quote->quote_id = $newQuoteId;
+            $quote->customers_id = $validatedData['customers_id'];
+            $quote->user_id = Auth::id();
+            $quote->save();
+    
+            // Delete existing quote services
+            QuoteService::where('quote_id', $newQuoteId)->delete();
+    
+            // Save new services
+            if (!empty($validatedData['services'])) {
+                foreach ($validatedData['services'] as $index => $serviceId) {
+                    $quantity = $validatedData['quantities'][$index] ?? 0;
+                    if ($serviceId && $quantity > 0) {
+                        $service = Service::findOrFail($serviceId);
+                        $subtotal = $service->precio * $quantity;
+                        $total += $subtotal;
+                        QuoteService::create([
+                            'quote_id' => $newQuoteId,
+                            'services_id' => $serviceId,
                             'service_packages_id' => null,
-                        ];
+                            'cantidad' => $quantity,
+                            'subtotal' => $subtotal,
+                        ]);
                     }
                 }
             }
     
-            // Procesar paquetes
+            // Save new packages
             if (!empty($validatedData['service_packages'])) {
-                foreach ($validatedData['service_packages'] as $packageId) {
-                    if ($packageId && isset($validatedData['package_quantities'][$packageId]) && $validatedData['package_quantities'][$packageId] > 0) {
+                foreach ($validatedData['service_packages'] as $index => $packageId) {
+                    $quantity = $validatedData['package_quantities'][$index] ?? 0;
+                    if ($packageId && $quantity > 0) {
                         $package = ServicePackage::findOrFail($packageId);
-                        $quantity = (int) $validatedData['package_quantities'][$packageId];
                         $subtotal = $package->precio * $quantity;
                         $total += $subtotal;
-                        $servicePackagesData[$packageId] = [
+                        QuoteService::create([
+                            'quote_id' => $newQuoteId,
+                            'services_id' => null,
+                            'service_packages_id' => $packageId,
                             'cantidad' => $quantity,
                             'subtotal' => $subtotal,
-                            'services_id' => null,
-                        ];
+                        ]);
                     }
                 }
             }
@@ -225,93 +352,111 @@ class QuoteController extends Controller
             $discount = $customer->customerType->discount_percentage / 100 ?? 0;
             if ($discount > 0) {
                 $total = $total * (1 - $discount);
-                foreach ($servicesData as &$data) {
-                    $data['subtotal'] = $data['subtotal'] * (1 - $discount);
-                }
-                foreach ($servicePackagesData as &$data) {
-                    $data['subtotal'] = $data['subtotal'] * (1 - $discount);
-                }
             }
     
-            $quote->quote_id = $validatedData['quote_id'];
-            $quote->customers_id = $validatedData['customers_id'];
             $quote->total = $total;
             $quote->save();
     
-            if (!empty($servicesData)) {
-                $quote->services()->sync($servicesData);
-            } else {
-                $quote->services()->detach();
-            }
+            // Re-enable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
     
-            if (!empty($servicePackagesData)) {
-                $quote->servicePackages()->sync($servicePackagesData);
-            } else {
-                $quote->servicePackages()->detach();
-            }
-    
-            return redirect()->route('cotizacion.index')->with('success', 'Cotización actualizada exitosamente.');
+            return response()->json([
+                'success' => true,
+                'message' => 'Cotización actualizada exitosamente.'
+            ], 200);
         } catch (\Exception $e) {
-            Log::error('Error al actualizar cotización: ' . $e->getMessage());
-            return back()->with('error', 'Error al actualizar la cotización: ' . $e->getMessage())->withInput();
+            // Ensure foreign key checks are re-enabled even if an error occurs
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            Log::error('Error al actualizar cotización: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar la cotización: ' . $e->getMessage()
+            ], 500);
         }
     }
 
-    public function destroy($quote_id)
-    {
-        try {
-            $quote = Quote::findOrFail($quote_id);
-            $quote->services()->detach();
-            $quote->servicePackages()->detach();
-            $quote->delete();
-            return redirect()->route('cotizacion.index')->with('success', 'Cotización eliminada exitosamente.');
-        } catch (\Exception $e) {
-            Log::error('Error al eliminar cotización: ' . $e->getMessage());
-            return back()->with('error', 'Error al eliminar la cotización: ' . $e->getMessage());
-        }
-    }
-
-    public function createMinima() // Corrige 'createMinima' para que coincida con la ruta
-    {
-        $customers = Customer::all();
-        $services = Service::all();
-        $servicePackages = ServicePackage::all();
-        return view('cotizaciones.create_minima', compact('customers', 'services', 'servicePackages'));
-    }
-
-    public function upload(Request $request, $quote_id) // Corrige 'upload' para que coincida con la ruta
-    {
-        $request->validate([
-            'archivo' => 'required|file|mimes:pdf,jpg,png|max:2048',
-        ]);
-
-        try {
-            $quote = Quote::findOrFail($quote_id);
-            if ($request->hasFile('archivo')) {
-                $file = $request->file('archivo');
-                $filename = 'quote_' . $quote->quote_id . '_' . time() . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('public/comprobantes', $filename);
-                $quote->archivo = $filename;
-                $quote->save();
-            }
-            return redirect()->route('cotizacion.index')->with('success', 'Comprobante de pago subido exitosamente.');
-        } catch (\Exception $e) {
-            Log::error('Error al subir archivo: ' . $e->getMessage());
-            return back()->with('error', 'Error al subir el archivo: ' . $e->getMessage());
-        }
-    }
-
-    public function comprobante($quote_id) // Corrige 'comprobante' para que coincida con la ruta
-    {
-        try {
-            $quote = Quote::with(['customer.customerType', 'user', 'services', 'servicePackages'])->findOrFail($quote_id);
-            $isAccredited = $quote->services->contains('acreditado', true) || $quote->servicePackages->contains('acreditado', true);
-            $clientText = $quote->customer->customerType->additional_info ?? 'Información no especificada.';
-            $pdf = Pdf::loadView('pdf.quote', compact('quote', 'isAccredited', 'clientText'));
-            return $pdf->download('cotizacion_' . $quote->quote_id . '.pdf');
-        } catch (\Exception $e) {
-            Log::error('Error al generar PDF: ' . $e->getMessage());
-            return redirect()->route('cotizacion.index')->with('error', 'Error al generar el PDF: ' . $e->getMessage());
-        }
+public function destroy($quote_id)
+{
+    try {
+        $quote = Quote::findOrFail($quote_id);
+        $quote->quoteServices()->delete();
+        $quote->delete();
+        return redirect()->route('cotizacion.index')->with('success', 'Cotización eliminada exitosamente.');
+    } catch (\Exception $e) {
+        Log::error('Error al eliminar cotización: ' . $e->getMessage());
+        return back()->with('error', 'Error al eliminar la cotización: ' . $e->getMessage());
     }
 }
+
+public function comprobante($id)
+{
+    $quote = Quote::where('quote_id', $id)
+        ->with(['customer.customerType', 'user', 'quoteServices.service', 'quoteServices.servicePackage'])
+        ->firstOrFail();
+
+    // Determine if any service or package is accredited
+    $isAccredited = false;
+    foreach ($quote->quoteServices as $quoteService) {
+        if ($quoteService->service && $quoteService->service->acreditado) {
+            $isAccredited = true;
+            break;
+        }
+        if ($quoteService->servicePackage && $quoteService->servicePackage->acreditado) {
+            $isAccredited = true;
+            break;
+        }
+        // Check if any service within the package is accredited
+        if ($quoteService->servicePackage) {
+            foreach ($quoteService->servicePackage->included_services as $service) {
+                if ($service->acreditado) {
+                    $isAccredited = true;
+                    break 2; // Exit both loops
+                }
+            }
+        }
+    }
+
+    // Fetch the admin user
+    $admin = User::where('role', 'admin')->first();
+    if (!$admin) {
+        $admin = new User();
+        $admin->name = 'Administrador no encontrado';
+    }
+
+    // Determine client text based on customer type
+    $clientText = $quote->customer->tipo_cliente === 'interno'
+        ? 'Cliente Interno: Este cliente es parte de la organización.'
+        : 'Cliente Externo: Este cliente no pertenece a la organización.';
+
+    $pdf = PDF::loadView('pdf.quote', compact('quote', 'isAccredited', 'admin', 'clientText'));
+    return $pdf->download('cotizacion_' . $quote->quote_id . '.pdf');
+}
+
+
+public function showUploadForm($quote_id)
+{
+    $quote = Quote::findOrFail($quote_id);
+    return view('cotizacion.upload', compact('quote'));
+}
+
+public function upload(Request $request, $quote_id)
+{
+    $request->validate([
+        'archivo' => 'required|file|mimes:pdf,jpg,png|max:2048',
+    ]);
+
+    try {
+        $quote = Quote::findOrFail($quote_id);
+        if ($request->hasFile('archivo')) {
+            $file = $request->file('archivo');
+            $filename = 'quote_' . $quote->quote_id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('public/comprobantes', $filename);
+            $quote->archivo = $filename;
+            $quote->save();
+        }
+        return redirect()->route('cotizacion.index')->with('success', 'Comprobante de pago subido exitosamente.');
+    } catch (\Exception $e) {
+        Log::error('Error al subir archivo: ' . $e->getMessage());
+        return back()->with('error', 'Error al subir el archivo: ' . $e->getMessage());
+    }
+}}
