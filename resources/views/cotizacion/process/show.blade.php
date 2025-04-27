@@ -29,7 +29,7 @@
                 <h3 class="card-title">Información del Proceso</h3>
             </div>
             <div class="card-body">
-                <p><strong>ID del Proceso:</strong> {{ $process->id }}</p>
+                <p><strong>ID del Proceso:</strong> {{ $process->process_id }}</p>
                 <p><strong>Estado:</strong> {{ $process->status }}</p>
                 <p><strong>Fecha de Inicio:</strong> {{ $process->created_at->format('d/m/Y') }}</p>
                 <p><strong>Item Code:</strong> {{ $process->item_code }}</p>

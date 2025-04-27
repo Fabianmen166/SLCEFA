@@ -35,22 +35,43 @@ public function index()
 public function technicalIndex()
 {
     try {
+        Log::info('User accessing technicalIndex:', [
+            'user_id' => Auth::id(),
+            'user_role' => Auth::user()->role ?? 'N/A',
+        ]);
+
         $processes = Process::where('status', 'pending')
             ->with([
-                'quote',
-                'services' => function ($query) {
-                    $query->withPivot('status'); // Cargar el estado de la tabla pivote
+                'quote' => function ($query) {
+                    $query->with('customer');
                 },
-                'serviceDetails' => function ($query) {
-                    $query->with('service'); // Cargar el servicio relacionado
-                }
+                'services' => function ($query) {
+                    $query->withPivot('status', 'cantidad')
+                          ->wherePivot('status', 'pending');
+                },
+                'completedServices' => function ($query) {
+                    $query->withPivot('status', 'cantidad')
+                          ->wherePivot('status', 'completed');
+                },
+                'serviceProcessDetails' => function ($query) {
+                    $query->with('service');
+                },
             ])
             ->get();
 
+        Log::info('Processes loaded:', [
+            'count' => $processes->count(),
+            'processes' => $processes->toArray(),
+        ]);
+
         return view('processes.technical_index', compact('processes'));
     } catch (\Exception $e) {
-        \Log::error('Error en ProcessController@technicalIndex: ' . $e->getMessage());
-        return back()->with('error', 'Error al cargar los procesos técnicos: ' . $e->getMessage());
+        Log::error('Error in technicalIndex: ' . $e->getMessage(), [
+            'user_id' => Auth::id(),
+            'stack_trace' => $e->getTraceAsString(),
+        ]);
+        return redirect()->route('personal_tecnico.dashboard')
+                       ->with('error', 'Error al cargar los procesos técnicos: ' . $e->getMessage());
     }
 }
 
@@ -405,86 +426,142 @@ public function storeAnalysis(Request $request, $process_id, $service_id)
         return $currentDate;
     }
 
-   // app/Http/Controllers/ProcessController.php
-// app/Http/Controllers/ProcessController.php (método start)
-public function start(Request $request, $quote)
-{
-    $request->validate([
-        'item_code' => 'required|string|max:255',
-        'comunicacion_cliente' => 'nullable|string',
-        'dias_procesar' => 'required|integer|min:1',
-        'descripcion' => 'nullable|string',
-        'lugar_muestreo' => 'nullable|string|max:255',
-        'fecha_muestreo' => 'nullable|date',
-    ]);
-
-    try {
-        $quote = Quote::findOrFail($quote);
-
-        $fechaRecepcion = now();
-        $diasProcesar = (int) $request->dias_procesar;
-        $fechaEntrega = $this->calculateDeliveryDate($fechaRecepcion, $diasProcesar);
-
-        // Generar un process_id único
-        $processId = 'PRC-' . time();
-        $process = Process::create([
-            'process_id' => $processId, // Usar el process_id generado
-            'quote_id' => $quote->quote_id,
-            'item_code' => $request->item_code,
-            'comunicacion_cliente' => $request->comunicacion_cliente,
-            'dias_procesar' => $diasProcesar,
-            'fecha_recepcion' => $fechaRecepcion,
-            'descripcion' => $request->descripcion,
-            'lugar_muestreo' => $request->lugar_muestreo,
-            'fecha_muestreo' => $request->fecha_muestreo,
-            'responsable_recepcion' => Auth::id(),
-            'fecha_entrega' => $fechaEntrega,
-            'status' => 'pending',
+    public function start(Request $request, $quote)
+    {
+        $request->validate([
+            'item_code' => 'required|string|max:255|unique:processes,process_id',
+            'comunicacion_cliente' => 'nullable|string',
+            'dias_procesar' => 'required|integer|min:1',
+            'descripcion' => 'nullable|string',
+            'lugar_muestreo' => 'nullable|string|max:255',
+            'fecha_muestreo' => 'nullable|date',
         ]);
-
-        // Cargar las asignaciones de servicios y paquetes
-        $quote->load('quoteServices.service', 'quoteServices.servicePackage');
-
-        // Crear un análisis para cada servicio (individual o dentro de un paquete)
-        $serviceIdsProcessed = []; // Para evitar duplicados
-        foreach ($quote->quoteServices as $quoteService) {
-            if ($quoteService->services_id) {
-                // Servicio individual
-                if (!in_array($quoteService->services_id, $serviceIdsProcessed)) {
-                    Analysis::create([
-                        'process_id' => $processId, // Usar el process_id generado
-                        'service_id' => $quoteService->services_id,
-                        'status' => 'pending',
-                    ]);
-                    $serviceIdsProcessed[] = $quoteService->services_id;
-                }
-            } elseif ($quoteService->service_packages_id) {
-                // Servicios dentro de un paquete
-                $package = $quoteService->servicePackage;
-                $serviceIds = $package ? json_decode($package->included_services, true) : [];
-                if (is_array($serviceIds)) {
+    
+        try {
+            $quote = Quote::findOrFail($quote);
+            Log::info('Starting process for quote:', ['quote_id' => $quote->quote_id]);
+    
+            $fechaRecepcion = now();
+            $diasProcesar = (int) $request->dias_procesar;
+            $fechaEntrega = $this->calculateDeliveryDate($fechaRecepcion, $diasProcesar);
+            $processId = $request->item_code;
+    
+            $process = Process::create([
+                'process_id' => $processId,
+                'quote_id' => $quote->quote_id,
+                'item_code' => $request->item_code,
+                'comunicacion_cliente' => $request->comunicacion_cliente,
+                'dias_procesar' => $diasProcesar,
+                'fecha_recepcion' => $fechaRecepcion,
+                'descripcion' => $request->descripcion,
+                'lugar_muestreo' => $request->lugar_muestreo,
+                'fecha_muestreo' => $request->fecha_muestreo,
+                'responsable_recepcion' => Auth::id(),
+                'fecha_entrega' => $fechaEntrega,
+                'status' => 'pending',
+            ]);
+    
+            $quote->load('quoteServices.service', 'quoteServices.servicePackage');
+            $serviceIdsProcessed = [];
+    
+            foreach ($quote->quoteServices as $quoteService) {
+                Log::info('Processing quote service:', [
+                    'services_id' => $quoteService->services_id,
+                    'service_packages_id' => $quoteService->service_packages_id,
+                    'cantidad' => $quoteService->cantidad,
+                ]);
+    
+                $cantidad = $quoteService->cantidad ?? 1;
+    
+                if ($quoteService->services_id) {
+                    // Individual service
+                    if (!in_array($quoteService->services_id, $serviceIdsProcessed)) {
+                        Analysis::create([
+                            'process_id' => $processId,
+                            'service_id' => $quoteService->services_id,
+                            'status' => 'pending',
+                        ]);
+                        \DB::table('process_service')->insert([
+                            'process_id' => $processId,
+                            'services_id' => $quoteService->services_id,
+                            'cantidad' => $cantidad,
+                            'status' => 'pending',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                        $serviceIdsProcessed[] = $quoteService->services_id;
+                    }
+                } elseif ($quoteService->service_packages_id) {
+                    // Package services
+                    $package = $quoteService->servicePackage;
+                    if (!$package) {
+                        Log::warning('Service package not found:', ['service_packages_id' => $quoteService->service_packages_id]);
+                        continue;
+                    }
+    
+                    $serviceIds = [];
+                    // Check if included_services is a Collection (from accessor)
+                    if ($package->included_services instanceof \Illuminate\Database\Eloquent\Collection) {
+                        $serviceIds = $package->included_services->pluck('services_id')->toArray();
+                    }
+                    // Check if included_services is a JSON string (raw database value)
+                    elseif (is_string($package->included_services)) {
+                        $serviceIds = json_decode($package->included_services, true);
+                        if (json_last_error() !== JSON_ERROR_NONE) {
+                            Log::error('Invalid JSON in included_services:', [
+                                'service_packages_id' => $quoteService->service_packages_id,
+                                'json_error' => json_last_error_msg(),
+                            ]);
+                            continue;
+                        }
+                    }
+    
+                    Log::info('Extracted service IDs:', ['service_ids' => $serviceIds]);
+    
+                    if (!is_array($serviceIds) || empty($serviceIds)) {
+                        Log::warning('No valid service IDs found in package:', [
+                            'service_packages_id' => $quoteService->service_packages_id,
+                            'included_services' => $package->included_services,
+                        ]);
+                        continue;
+                    }
+    
                     foreach ($serviceIds as $serviceId) {
-                        if (!in_array($serviceId, $serviceIdsProcessed) && Service::find($serviceId)) {
+                        if (!in_array($serviceId, $serviceIdsProcessed)) {
+                            $service = Service::find($serviceId);
+                            if (!$service) {
+                                Log::warning('Service not found:', ['service_id' => $serviceId]);
+                                continue;
+                            }
                             Analysis::create([
-                                'process_id' => $processId, // Usar el process_id generado
+                                'process_id' => $processId,
                                 'service_id' => $serviceId,
                                 'status' => 'pending',
+                            ]);
+                            \DB::table('process_service')->insert([
+                                'process_id' => $processId,
+                                'services_id' => $serviceId,
+                                'cantidad' => $cantidad,
+                                'status' => 'pending',
+                                'created_at' => now(),
+                                'updated_at' => now(),
                             ]);
                             $serviceIdsProcessed[] = $serviceId;
                         }
                     }
                 }
             }
+    
+            return redirect()->route('cotizacion.process.show', $processId)
+                            ->with('success', 'Proceso iniciado exitosamente.');
+        } catch (\Exception $e) {
+            Log::error('Error starting process: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'stack_trace' => $e->getTraceAsString(),
+            ]);
+            return back()->with('error', 'Error al iniciar el proceso: ' . $e->getMessage())->withInput();
         }
-
-        return redirect()->route('cotizacion.process.show', $processId)
-                        ->with('success', 'Proceso iniciado exitosamente.');
-    } catch (\Exception $e) {
-        Log::error('Error al iniciar proceso: ' . $e->getMessage());
-        return back()->with('error', 'Error al iniciar el proceso: ' . $e->getMessage())->withInput();
     }
-}
-
 // app/Http/Controllers/ProcessController.php
 public function destroy($process_id)
 {

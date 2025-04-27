@@ -1,5 +1,4 @@
-<!-- resources/views/processes/technical_index.blade.php -->
-@extends('layouts.master')
+@extends('layouts.app')
 
 @section('title', 'Análisis Técnico')
 
@@ -24,7 +23,7 @@
     <div class="container-fluid">
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title">Procesos Pendientes</h3>
+                <h3 class="card-title">Procesos </h3>
             </div>
             <div class="card-body">
                 @if($processes->isEmpty())
@@ -34,7 +33,7 @@
                         <thead>
                             <tr>
                                 <th>ID Proceso</th>
-                                <th>Cotización</th>
+                                <th>ID Cotización</th>
                                 <th>Servicios Pendientes</th>
                                 <th>Servicios Realizados</th>
                                 <th>Acciones</th>
@@ -46,25 +45,33 @@
                                     <td>{{ $process->process_id }}</td>
                                     <td>{{ $process->quote->quote_id }}</td>
                                     <td>
-                                        <ul>
-                                            @foreach($process->services->where('pivot.status', 'pending') as $service)
-                                                <li>{{ $service->descripcion }} ({{ $service->pivot->cantidad }} pendientes)</li>
-                                            @endforeach
-                                        </ul>
+                                        @if($process->pendingServices->isEmpty())
+                                            <p>No hay servicios pendientes.</p>
+                                        @else
+                                            <ul>
+                                                @foreach($process->pendingServices as $service)
+                                                    <li>{{ $service->name }} ({{ $service->quantity }} pendientes)</li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
                                     </td>
                                     <td>
-                                        <ul>
-                                            @foreach($process->serviceDetails->where('status', 'completed') as $detail)
-                                                <li>{{ $detail->service->descripcion }} (Resultado: {{ $detail->result ?? 'Sin resultado' }})</li>
-                                            @endforeach
-                                        </ul>
+                                        @if($process->completedServices->isEmpty())
+                                            <p>No hay servicios realizados.</p>
+                                        @else
+                                            <ul>
+                                                @foreach($process->completedServices as $service)
+                                                    <li>{{ $service->name }} (Resultado: {{ $service->result }})</li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
                                     </td>
                                     <td>
-                                        @foreach($process->services->where('pivot.status', 'pending') as $service)
-                                            @if(in_array($service->descripcion, ['pH en Suelos', 'Acidez Intercambiable en Suelos', 'Conductividad Eléctrica en Suelos']))
-                                                <a href="{{ route('process.technical_analysis', ['process_id' => $process->process_id, 'service_type' => strtolower(str_replace(' ', '_', $service->descripcion))) }}"
+                                        @foreach($process->pendingServices as $service)
+                                            @if(in_array($service->name, ['pH en Suelos', 'Acidez Intercambiable en Suelos', 'Conductividad Eléctrica en Suelos']))
+                                                <a href="{{ route('process.technical_analysis', ['process_id' => $process->process_id, 'service_type' => strtolower(str_replace(' ', '_', $service->name))) }}"
                                                    class="btn btn-sm btn-primary mb-1">
-                                                    Realizar {{ $service->descripcion }}
+                                                    Realizar {{ $service->name }}
                                                 </a>
                                             @endif
                                         @endforeach

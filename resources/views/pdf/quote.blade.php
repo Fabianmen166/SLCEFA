@@ -101,7 +101,7 @@
         <p><strong>Teléfono:</strong> {{ $quote->customer->telefono ?? 'No disponible' }}</p>
         <p><strong>NIT:</strong> {{ $quote->customer->nit ?? 'No disponible' }}</p>
         <p><strong>Correo:</strong> {{ $quote->customer->correo ?? 'No Reportado' }}</p>
-        <p><strong>Tipo de Cliente:</strong> {{ ucfirst($quote->customer->tipo_cliente) ?? 'Desconocido' }}</p>
+        <p><strong>Tipo de Cliente:</strong> {{ ucfirst($quote->customer->customerType->name ?? $quote->customer->tipo_cliente ?? 'Desconocido') }}</p>
         <p><strong>Fecha de la Cotización:</strong> {{ $quote->created_at->format('d/m/Y H:i:s') }}</p>
     </div>
 
@@ -150,14 +150,14 @@
     <!-- Información según el cliente -->
     <div class="info">
         <div class="title">Información del Cliente</div>
-        <p>{{ $clientText }}</p>
+        <p>{{ $clientText ?? 'Tipo de cliente no especificado.' }}</p>
     </div>
 
     <!-- Información de relleno -->
     <div class="filler">
         <div class="title">Información de Relleno</div>
         <p>Esta cotización tiene una vigencia de 30 días calendario. La aceptación de la oferta implica que el cliente está de acuerdo con todas las condiciones aquí descritas, incluyendo que sus muestras se analicen por los métodos indicados. En caso de tener cualquier inconformidad la debe manifestar al laboratorio para elaborar una nueva cotización.</p>
-        <p>La cantidad de muestra requerida es de aproximadamente 1 kg, la cual debe ser empacada en bolsa limpia, seca, bien sellada y rotulada. La recepción de las muestras para análisis fisicoquímico se hará de lunes a viernes de 08:00 h a 15:00 h en. La entrega de resultados se hará en aproximadamente (15 días hábiles contados a partir del día siguiente de la recepción de la muestra) y será acordada previamente con el cliente; una vez emitidos, dicha entrega se realizará en las instalaciones del laboratorio en los horarios de lunes a viernes de 08:00 h a 12:00 h y de 13:30 h a 16:00 h o vía correo electrónico si así lo desea el cliente. En caso de que el cliente requiera devolución del ítem de ensayo, deberá acercarse al laboratorio a partir de la fecha de elaboración del informe de resultados sin exceder un 30 días, de lo contrario el laboratorio queda autorizado para hacer la disposición final.</p>
+        <p>La cantidad de muestra requerida es de aproximadamente 1 kg, la cual debe be empacada en bolsa limpia, seca, bien sellada y rotulada. La recepción de las muestras para análisis fisicoquímico se hará de lunes a viernes de 08:00 h a 15:00 h en. La entrega de resultados se hará en aproximadamente (15 días hábiles contados a partir del día siguiente de la recepción de la muestra) y será acordada previamente con el cliente; una vez emitidos, dicha entrega se realizará en las instalaciones del laboratorio en los horarios de lunes a viernes de 08:00 h a 12:00 h y de 13:30 h a 16:00 h o vía correo electrónico si así lo desea el cliente. En caso de que el cliente requiera devolución del ítem de ensayo, deberá acercarse al laboratorio a partir de la fecha de elaboración del informe de resultados sin exceder un 30 días, de lo contrario el laboratorio queda autorizado para hacer la disposición final.</p>
     </div>
 
     <!-- Servicios en texto (párrafo) -->
@@ -169,9 +169,20 @@
                     {{ $quoteService->service->descripcion }} (Cantidad: {{ $quoteService->cantidad }}, Subtotal: {{ number_format($quoteService->subtotal, 2) }})
                 @elseif ($quoteService->servicePackage)
                     {{ $quoteService->servicePackage->nombre }} (Cantidad: {{ $quoteService->cantidad }}, Subtotal: {{ number_format($quoteService->subtotal, 2) }}), que incluye: 
-                    @foreach ($quoteService->servicePackage->included_services as $service)
-                        {{ $service->descripcion }}@if (!$loop->last), @endif
-                    @endforeach
+                    @php
+                        $services = $quoteService->servicePackage->included_services;
+                        $serviceDescriptions = [];
+                        if (is_string($services)) {
+                            $serviceIds = json_decode($services, true) ?? [];
+                            foreach ($serviceIds as $serviceId) {
+                                $service = \App\Models\Service::find($serviceId);
+                                if ($service) {
+                                    $serviceDescriptions[] = $service->descripcion;
+                                }
+                            }
+                        }
+                    @endphp
+                    {{ implode(', ', $serviceDescriptions) }}
                 @endif
                 @if (!$loop->last), @endif
             @endforeach.

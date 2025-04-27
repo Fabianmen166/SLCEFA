@@ -1,5 +1,5 @@
 <!-- resources/views/processes/technical_analysis.blade.php -->
-@extends('layouts.master')
+@extends('layouts.app')
 
 @section('title', 'Realizar Análisis Técnico')
 

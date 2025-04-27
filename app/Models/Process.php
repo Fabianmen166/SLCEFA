@@ -1,6 +1,5 @@
 <?php
 
-// app/Models/Process.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -10,8 +9,11 @@ class Process extends Model
     protected $table = 'processes';
 
     protected $primaryKey = 'process_id';
+    public $incrementing = false; // process_id is not auto-incrementing
+    protected $keyType = 'string'; // process_id is a string
 
     protected $fillable = [
+        'process_id', // Added to allow mass assignment
         'quote_id',
         'item_code',
         'status',
@@ -38,25 +40,30 @@ class Process extends Model
         return $this->belongsTo(Quote::class, 'quote_id', 'quote_id');
     }
 
-    public function services()
-    {
-        return $this->belongsToMany(Service::class, 'process_service', 'process_id', 'services_id')
-                    ->withTimestamps();
-    }
+
 
     public function responsable()
     {
-        return $this->belongsTo(User::class, 'responsable_recepcion');
+        return $this->belongsTo(User::class, 'responsable_recepcion', 'user_id');
     }
 
     public function analyses()
     {
-        return $this->hasMany(Analysis::class, 'process_id');
+        return $this->hasMany(Analysis::class, 'process_id', 'process_id');
     }
 
-    // Nueva relación para conectar con ServiceProcessDetail
-    public function serviceDetails()
+    public function serviceProcessDetails()
     {
-        return $this->hasMany(ServiceProcessDetail::class, 'process_id');
+        return $this->hasMany(ServiceProcessDetail::class, 'process_id', 'process_id');
     }
+    public function services()
+{
+    return $this->belongsToMany(Service::class, 'process_service', 'process_id', 'services_id')
+               ->withPivot('status', 'cantidad');
+}
+public function completedServices()
+{
+    return $this->belongsToMany(Service::class, 'process_service', 'process_id', 'services_id')
+               ->withPivot('status', 'cantidad');
+}
 }

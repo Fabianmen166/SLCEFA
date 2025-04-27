@@ -407,10 +407,14 @@ public function comprobante($id)
         }
         // Check if any service within the package is accredited
         if ($quoteService->servicePackage) {
-            foreach ($quoteService->servicePackage->included_services as $service) {
+            $serviceIds = is_string($quoteService->servicePackage->included_services)
+                ? json_decode($quoteService->servicePackage->included_services, true)
+                : $quoteService->servicePackage->included_services;
+            $services = Service::whereIn('id', $serviceIds ?? [])->get();
+            foreach ($services as $service) {
                 if ($service->acreditado) {
                     $isAccredited = true;
-                    break 2; // Exit both loops
+                    break 2;
                 }
             }
         }
@@ -424,9 +428,10 @@ public function comprobante($id)
     }
 
     // Determine client text based on customer type
-    $clientText = $quote->customer->tipo_cliente === 'interno'
+    $tipoCliente = $quote->customer->tipo_cliente ?? ($quote->customer->customerType->name ?? 'externo');
+    $clientText = $quote->customer->customerType->description ?? ($tipoCliente === 'interno'
         ? 'Cliente Interno: Este cliente es parte de la organización.'
-        : 'Cliente Externo: Este cliente no pertenece a la organización.';
+        : 'Cliente Externo: Este cliente no pertenece a la organización.');
 
     $pdf = PDF::loadView('pdf.quote', compact('quote', 'isAccredited', 'admin', 'clientText'));
     return $pdf->download('cotizacion_' . $quote->quote_id . '.pdf');

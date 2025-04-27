@@ -10,10 +10,11 @@ class CreateServiceProcessDetailsTable extends Migration
     {
         Schema::create('service_process_details', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('process_id')->constrained('processes', 'process_id')->onDelete('cascade');
+            $table->string('process_id');
+            $table->foreign('process_id')->references('process_id')->on('processes')->onDelete('cascade');
             $table->foreignId('services_id')->constrained('services', 'services_id')->onDelete('cascade');
             $table->date('analysis_date');
-            $table->json('details')->nullable(); // Almacena muestras y resultados
+            $table->json('details')->nullable();
             $table->string('reviewed_by')->nullable();
             $table->string('reviewer_role')->nullable();
             $table->dateTime('review_date')->nullable();

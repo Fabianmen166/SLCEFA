@@ -9,7 +9,7 @@ class CreateProcessesTable extends Migration
     public function up()
     {
         Schema::create('processes', function (Blueprint $table) {
-            $table->id('process_id');
+            $table->string('process_id')->primary(); // Change from $table->id('process_id') to string
             $table->string('quote_id');
             $table->foreign('quote_id')->references('quote_id')->on('quotes')->onDelete('cascade');
             $table->string('item_code');
