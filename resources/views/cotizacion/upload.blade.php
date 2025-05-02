@@ -42,7 +42,7 @@
                 @if ($quote->processes()->exists())
                     <div class="alert alert-info">
                         Ya se ha iniciado un proceso para esta cotización.
-                        <a href="{{ route('cotizacion.process.show', $quote->processes()->first()->process_id) }}" class="btn btn-info btn-sm">Ver Proceso</a>
+                        <a href="{{ route('processes.show', $quote->processes()->first()->process_id) }}" class="btn btn-info btn-sm">Ver Proceso</a>
                     </div>
                 @else
                     <form action="{{ route('cotizacion.process.start', $quote->quote_id) }}" method="POST">

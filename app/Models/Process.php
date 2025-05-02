@@ -1,22 +1,18 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class Process extends Model
 {
-    protected $table = 'processes';
-
     protected $primaryKey = 'process_id';
-    public $incrementing = false; // process_id is not auto-incrementing
-    protected $keyType = 'string'; // process_id is a string
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
-        'process_id', // Added to allow mass assignment
+        'process_id',
         'quote_id',
         'item_code',
-        'status',
         'comunicacion_cliente',
         'dias_procesar',
         'fecha_recepcion',
@@ -25,20 +21,35 @@ class Process extends Model
         'fecha_muestreo',
         'responsable_recepcion',
         'fecha_entrega',
+        'status',
     ];
 
     protected $casts = [
-        'fecha_recepcion' => 'date',
-        'fecha_entrega' => 'date',
+        'fecha_recepcion' => 'datetime', // Cast to Carbon instance
+        'fecha_entrega' => 'datetime',  // Cast to Carbon instance
         'fecha_muestreo' => 'date',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
     ];
 
     public function quote()
     {
-        return $this->belongsTo(Quote::class, 'quote_id', 'quote_id');
+        return $this->belongsTo(Quote::class, 'quote_id');
     }
+
+    public function analyses()
+    {
+        return $this->hasMany(Analysis::class, 'process_id', 'process_id');
+    }
+
+    public function pendingPhAnalyses()
+    {
+        return $this->analyses()
+                    ->where('status', 'pending')
+                    ->whereHas('service', function ($query) {
+                        $query->where('descripcion', 'like', '%pH%');
+                    });
+    }
+
+
 
 
 
@@ -47,10 +58,7 @@ class Process extends Model
         return $this->belongsTo(User::class, 'responsable_recepcion', 'user_id');
     }
 
-    public function analyses()
-    {
-        return $this->hasMany(Analysis::class, 'process_id', 'process_id');
-    }
+
 
     public function serviceProcessDetails()
     {

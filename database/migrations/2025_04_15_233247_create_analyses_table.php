@@ -11,12 +11,14 @@ class CreateAnalysesTable extends Migration
         Schema::create('analyses', function (Blueprint $table) {
             $table->id();
             $table->string('process_id');
-            $table->foreign('process_id')->references('process_id')->on('processes')->onDelete('cascade');
-            $table->unsignedBigInteger('service_id')->nullable();
-            $table->foreign('service_id')->references('services_id')->on('services')->onDelete('set null');
+            $table->unsignedBigInteger('service_id');
             $table->string('status')->default('pending');
-            $table->boolean('approved')->default(false);
+            $table->integer('cantidad')->default(1);
+            $table->boolean('approved')->nullable();
             $table->timestamps();
+
+            $table->foreign('process_id')->references('process_id')->on('processes')->onDelete('cascade');
+            $table->foreign('service_id')->references('services_id')->on('services')->onDelete('cascade');
         });
     }
 

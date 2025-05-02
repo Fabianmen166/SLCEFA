@@ -74,6 +74,16 @@
                                 <p>Análisis Técnico</p>
                             </a>
                         </li>
+
+                        <!-- Gestión de Análisis de pH -->
+                        @if (Auth::user()->role === 'personal_tecnico')
+                            <li class="nav-item">
+                                <a href="{{ route('ph_analysis.index') }}" class="nav-link text-success">
+                                    <i class="nav-icon fas fa-flask"></i>
+                                    <p>Gestión de pH</p>
+                                </a>
+                            </li>
+                        @endif
                     </ul>
                 </nav>
                 <!-- /.sidebar-menu -->

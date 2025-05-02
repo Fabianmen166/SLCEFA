@@ -57,7 +57,7 @@
                                         </ul>
                                     </td>
                                     <td>
-                                        <a href="{{ route('cotizacion.process.show', $process->process_id) }}" class="btn btn-sm btn-primary">Ver Detalles</a>
+                                        <a href="{{ route('processes.show', $process->process_id) }}" class="btn btn-sm btn-primary">Ver Detalles</a>
                                         <form action="{{ route('cotizacion.process.destroy', $process->process_id) }}" method="POST" style="display:inline;">
                                             @csrf
                                             @method('DELETE')
