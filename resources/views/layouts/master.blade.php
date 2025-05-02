@@ -214,42 +214,7 @@
                             </ul>
                         </li>
                         <!-- Análisis de Producción -->
-                        <li class="nav-item">
-                            <a href="#" class="nav-link text-success">
-                                <i class="fas fa-chart-bar"></i>
-                                <p>Análisis de Producción</p>
-                            </a>
-                        </li>
-
-                        <!-- Geo Referencias -->
-                        <li class="nav-item">
-                            <a href="#" class="nav-link text-success">
-                                <i class="nav-icon fas fa-globe"></i>
-                                <p>Geo Referencias</p>
-                            </a>
-                        </li>
-
-                        <!-- Reportes -->
-                        <li class="nav-item has-treeview">
-                            <a href="#" class="nav-link text-danger">
-                                <i class="nav-icon fas fa-file-alt"></i>
-                                <p>Reportes <i class="fas fa-angle-left right"></i></p>
-                            </a>
-                            <ul class="nav nav-treeview">
-                                <li class="nav-item">
-                                    <a href="#" class="nav-link text-dark">
-                                        <i class="nav-icon fas fa-tasks"></i>
-                                        <p>Actividades</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="#" class="nav-link text-dark">
-                                        <i class="nav-icon fas fa-file-invoice-dollar"></i>
-                                        <p>Contable</p>
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
+                        
                     </ul>
                 </nav>
                 <!-- /.sidebar-menu -->
