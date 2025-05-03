@@ -1,4 +1,3 @@
-<!-- resources/views/cotizacion/process/show.blade.php -->
 @extends('layouts.master')
 
 @section('title', 'Detalles del Proceso')
@@ -13,7 +12,7 @@
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
                     <li class="breadcrumb-item"><a href="{{ route('gestion_calidad.dashboard') }}">Inicio</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('cotizacion.process.index') }}">Procesos Abiertos</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('processes.index') }}">Procesos Abiertos</a></li>
                     <li class="breadcrumb-item active">Detalles</li>
                 </ol>
             </div>
@@ -39,7 +38,7 @@
                 <p><strong>Descripción:</strong> {{ $process->descripcion ?? 'No especificada' }}</p>
                 <p><strong>Lugar de Muestreo:</strong> {{ $process->lugar_muestreo ?? 'No especificado' }}</p>
                 <p><strong>Fecha de Muestreo:</strong> {{ $process->fecha_muestreo ? \Carbon\Carbon::parse($process->fecha_muestreo)->format('d/m/Y') : 'No especificada' }}</p>
-                <p><strong>Responsable de Recepción:</strong> {{ $process->responsable_recepcion }}</p>
+                <p><strong>Responsable de Recepción:</strong> {{ $process->responsable->name ?? 'No especificado' }}</p>
                 <p><strong>Fecha de Entrega:</strong> {{ $process->fecha_entrega->format('d/m/Y') }}</p>
             </div>
         </div>

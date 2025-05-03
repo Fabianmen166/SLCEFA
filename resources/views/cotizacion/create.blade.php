@@ -2,7 +2,7 @@
 
 @section('contenido')
     <center>
-        <img src="{{ asset('images/LogoAgrosoft2.png') }}" width="30%">
+        <img src="{{ asset('images/LogoAgrosoft2.png') }}" width="30%" alt="Logo Agrosoft">
     </center>
 
     <div class="card-body">
@@ -60,7 +60,7 @@
 
                             <!-- Servicios -->
                             <h5>Servicios</h5>
-                            <div id="services-container">
+                            <div id="service-container">
                                 <div class="service-row mb-3" data-index="0">
                                     <div class="row">
                                         <div class="col-md-4">
@@ -68,7 +68,7 @@
                                             <select class="form-control service-select" name="services[0]" id="services_0">
                                                 <option value="">Seleccione un servicio</option>
                                                 @foreach ($services as $service)
-                                                    <option value="{{ $service->services_id }}" data-precio="{{ $service->precio }}">
+                                                    <option value="{{ $service->services_id }}" data-price="{{ $service->precio }}">
                                                         {{ $service->descripcion }} ({{ $service->precio }})
                                                     </option>
                                                 @endforeach
@@ -76,14 +76,14 @@
                                         </div>
                                         <div class="col-md-3">
                                             <label for="quantities_0" class="form-label">Cantidad</label>
-                                            <input type="number" class="form-control quantity-input" name="quantities[0]" id="quantities_0" min="1" value="1">
+                                            <input type="number" class="form-control quantity" name="quantities[0]" id="quantities_0" min="1" value="1">
                                         </div>
                                         <div class="col-md-3">
                                             <label class="form-label">Subtotal</label>
-                                            <input type="text" class="form-control subtotal-input" readonly value="0">
+                                            <input type="text" class="form-control subtotal" readonly value="0">
                                         </div>
                                         <div class="col-md-2 d-flex align-items-end">
-                                            <button type="button" class="btn btn-danger remove-service-btn" style="display: none;">Eliminar</button>
+                                            <button type="button" class="btn btn-danger delete-btn" style="display: none;">Eliminar</button>
                                         </div>
                                     </div>
                                 </div>
@@ -92,7 +92,7 @@
 
                             <!-- Paquetes de Servicios -->
                             <h5>Paquetes de Servicios</h5>
-                            <div id="packages-container">
+                            <div id="package-container">
                                 <div class="package-row mb-3" data-index="0">
                                     <div class="row">
                                         <div class="col-md-4">
@@ -100,7 +100,7 @@
                                             <select class="form-control package-select" name="service_packages[0]" id="service_packages_0">
                                                 <option value="">Seleccione un paquete</option>
                                                 @foreach ($servicePackages as $servicePackage)
-                                                    <option value="{{ $servicePackage->service_packages_id }}" data-precio="{{ $servicePackage->precio }}">
+                                                    <option value="{{ $servicePackage->service_packages_id }}" data-price="{{ $servicePackage->precio }}">
                                                         {{ $servicePackage->nombre }} ({{ $servicePackage->precio }})
                                                     </option>
                                                 @endforeach
@@ -108,20 +108,14 @@
                                         </div>
                                         <div class="col-md-3">
                                             <label for="package_quantities_0" class="form-label">Cantidad</label>
-                                            <input type="number" class="form-control package-quantity-input" name="package_quantities[0]" id="package_quantities_0" min="1" value="1">
+                                            <input type="number" class="form-control quantity" name="package_quantities[0]" id="package_quantities_0" min="1" value="1">
                                         </div>
                                         <div class="col-md-3">
                                             <label class="form-label">Subtotal</label>
-                                            <input type="text" class="form-control subtotal-input" readonly value="0">
+                                            <input type="text" class="form-control subtotal" readonly value="0">
                                         </div>
                                         <div class="col-md-2 d-flex align-items-end">
-                                            <button type="button" class="btn btn-danger remove-package-btn" style="display: none;">Eliminar</button>
-                                        </div>
-                                    </div>
-                                    <div class="row mt-2">
-                                        <div class="col-md-12">
-                                            <p><strong>Servicios Incluidos:</strong></p>
-                                            <ul class="package-services-list"></ul>
+                                            <button type="button" class="btn btn-danger delete-btn" style="display: none;">Eliminar</button>
                                         </div>
                                     </div>
                                 </div>
@@ -131,7 +125,7 @@
                             <!-- Total -->
                             <div class="row mt-3">
                                 <div class="col-md-12">
-                                    <h5>Total: <span id="total-amount">0</span></h5>
+                                    <h5>Total: <span id="total-amount">0.00</span></h5>
                                 </div>
                             </div>
 
@@ -148,190 +142,216 @@
 
     @push('scripts')
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-        @php
-            $packagesData = [];
-            try {
-                if ($servicePackages instanceof \Illuminate\Support\Collection && $servicePackages->isNotEmpty()) {
-                    $packagesData = $servicePackages->mapWithKeys(function ($package) {
-                        $includedServices = $package->included_services ?? [];
-                        if (is_string($includedServices)) {
-                            $includedServices = json_decode($includedServices, true) ?? [];
-                        }
-                        return [$package->service_packages_id => $includedServices];
-                    })->toArray();
-                }
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Error al calcular packagesData: ' . $e->getMessage());
-                $packagesData = [];
-            }
-        @endphp
         <div id="services-data" style="display: none;" 
              data-services="{{ json_encode($services) }}"
-             data-service-packages="{{ json_encode($servicePackages) }}"
-             data-packages-data="{{ json_encode($packagesData) }}"></div>
+             data-service-packages="{{ json_encode($servicePackages) }}"></div>
 
         <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                const servicesContainer = document.getElementById('services-container');
-                const packagesContainer = document.getElementById('packages-container');
+            document.addEventListener('DOMContentLoaded', () => {
+                const serviceContainer = document.getElementById('service-container');
+                const packageContainer = document.getElementById('package-container');
                 const addServiceBtn = document.getElementById('add-service-btn');
                 const addPackageBtn = document.getElementById('add-package-btn');
-                const totalAmountSpan = document.getElementById('total-amount');
-                let serviceIndex = 1;
-                let packageIndex = 1;
+                const totalDisplay = document.getElementById('total-amount');
+                let serviceIndex = 1; // Starting at 1 to account for initial row
+                let packageIndex = 1; // Starting at 1 to account for initial row
                 let discountPercentage = 0;
 
+                // Parse data from hidden element
+                const servicesData = JSON.parse(document.getElementById('services-data').dataset.services);
+                const servicePackages = JSON.parse(document.getElementById('services-data').dataset.servicePackages);
+                console.log('Services Data:', servicesData);
+                console.log('Service Packages:', servicePackages);
+
                 // Update discount percentage when customer is selected
-                document.getElementById('customers_id').addEventListener('change', function () {
-                    const selectedOption = this.options[this.selectedIndex];
+                document.getElementById('customers_id').addEventListener('change', (e) => {
+                    const selectedOption = e.target.selectedOptions[0];
                     discountPercentage = parseFloat(selectedOption.dataset.discount || 0);
                     calculateTotal();
                 });
 
-                // Initialize discount percentage on page load
+                // Initialize discount percentage
                 const customerSelect = document.getElementById('customers_id');
                 if (customerSelect.selectedIndex > 0) {
                     discountPercentage = parseFloat(customerSelect.options[customerSelect.selectedIndex].dataset.discount || 0);
                 }
 
-                // Function to calculate subtotal for a row
+                // Function to calculate subtotal for a row (without calling updateTotal)
                 function calculateSubtotal(row) {
                     const select = row.querySelector('.service-select, .package-select');
-                    const quantityInput = row.querySelector('.quantity-input, .package-quantity-input');
-                    const subtotalInput = row.querySelector('.subtotal-input');
-                    const price = parseFloat(select.options[select.selectedIndex]?.dataset.precio || 0);
-                    const quantity = parseInt(quantityInput.value || 1);
-                    const subtotal = price * quantity;
-                    subtotalInput.value = subtotal.toFixed(2);
-                    return subtotal;
+                    const quantity = row.querySelector('.quantity');
+                    const subtotal = row.querySelector('.subtotal');
+
+                    if (!select || !quantity || !subtotal) {
+                        console.error('Missing elements in row:', row);
+                        return 0;
+                    }
+
+                    const price = parseFloat(select.options[select.selectedIndex]?.dataset.price || 0);
+                    const qty = parseInt(quantity.value) || 1;
+                    const subtotalValue = price * qty;
+                    subtotal.value = subtotalValue.toFixed(2);
+                    return subtotalValue;
                 }
 
-                // Function to calculate total
+                // Function to calculate total (standalone, no recursive calls)
                 function calculateTotal() {
                     let total = 0;
-                    const serviceRows = servicesContainer.querySelectorAll('.service-row');
-                    const packageRows = packagesContainer.querySelectorAll('.package-row');
+                    const serviceRows = serviceContainer.querySelectorAll('.service-row');
+                    const packageRows = packageContainer.querySelectorAll('.package-row');
 
                     serviceRows.forEach(row => {
-                        const select = row.querySelector('.service-select');
-                        if (select.value) {
+                        if (row.querySelector('.service-select')?.value) {
                             total += calculateSubtotal(row);
                         }
                     });
 
                     packageRows.forEach(row => {
-                        const select = row.querySelector('.package-select');
-                        if (select.value) {
+                        if (row.querySelector('.package-select')?.value) {
                             total += calculateSubtotal(row);
                         }
                     });
 
-                    // Apply discount
                     if (discountPercentage > 0) {
                         total = total * (1 - discountPercentage / 100);
                     }
-
-                    totalAmountSpan.textContent = total.toFixed(2);
+                    totalDisplay.textContent = total.toFixed(2);
                 }
 
-                // Event delegation for dynamic rows (services)
-                servicesContainer.addEventListener('change', function (e) {
-                    if (e.target.classList.contains('service-select') || e.target.classList.contains('quantity-input')) {
-                        calculateTotal();
-                    }
-                });
-
-                // Event delegation for dynamic rows (packages)
-                packagesContainer.addEventListener('change', function (e) {
-                    if (e.target.classList.contains('package-select') || e.target.classList.contains('package-quantity-input')) {
-                        calculateTotal();
-                        // Update included services list when package changes
-                        const packageRow = e.target.closest('.package-row');
-                        updatePackageServicesList(packageRow);
-                    }
-                });
-
                 // Add new service row
-                addServiceBtn.addEventListener('click', function () {
-                    const newRow = servicesContainer.querySelector('.service-row').cloneNode(true);
+                addServiceBtn.addEventListener('click', () => {
+                    const newRow = document.createElement('div');
+                    newRow.className = 'service-row mb-3';
                     newRow.dataset.index = serviceIndex;
-                    newRow.querySelector('.service-select').name = `services[${serviceIndex}]`;
-                    newRow.querySelector('.service-select').id = `services_${serviceIndex}`;
-                    newRow.querySelector('.service-select').value = '';
-                    newRow.querySelector('.quantity-input').name = `quantities[${serviceIndex}]`;
-                    newRow.querySelector('.quantity-input').id = `quantities_${serviceIndex}`;
-                    newRow.querySelector('.quantity-input').value = '1';
-                    newRow.querySelector('.subtotal-input').value = '0';
-                    const removeBtn = newRow.querySelector('.remove-service-btn');
-                    removeBtn.style.display = 'block';
-                    servicesContainer.appendChild(newRow);
-                    updateRemoveButtons(servicesContainer, '.service-row', '.remove-service-btn');
+                    newRow.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="services_${serviceIndex}" class="form-label">Servicio</label>
+                                <select class="form-control service-select" name="services[${serviceIndex}]" id="services_${serviceIndex}">
+                                    <option value="">Seleccione un servicio</option>
+                                    ${servicesData.map(s => `<option value="${s.services_id}" data-price="${s.precio}">${s.descripcion} (${s.precio})</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="quantities_${serviceIndex}" class="form-label">Cantidad</label>
+                                <input type="number" class="form-control quantity" name="quantities[${serviceIndex}]" id="quantities_${serviceIndex}" min="1" value="1">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Subtotal</label>
+                                <input type="text" class="form-control subtotal" readonly value="0">
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button" class="btn btn-danger delete-btn">Eliminar</button>
+                            </div>
+                        </div>
+                    `;
+                    serviceContainer.appendChild(newRow);
+                    const select = newRow.querySelector('.service-select');
+                    const quantity = newRow.querySelector('.quantity');
+                    const deleteBtn = newRow.querySelector('.delete-btn');
+                    select.addEventListener('change', () => {
+                        calculateSubtotal(newRow);
+                        calculateTotal();
+                    });
+                    quantity.addEventListener('input', () => {
+                        calculateSubtotal(newRow);
+                        calculateTotal();
+                    });
+                    deleteBtn.addEventListener('click', () => {
+                        newRow.remove();
+                        calculateTotal();
+                        serviceIndex--;
+                    });
                     serviceIndex++;
+                    calculateSubtotal(newRow);
                     calculateTotal();
+                    console.log('Botón Agregar Otro Servicio clicado');
                 });
 
                 // Add new package row
-                addPackageBtn.addEventListener('click', function () {
-                    const newRow = packagesContainer.querySelector('.package-row').cloneNode(true);
+                addPackageBtn.addEventListener('click', () => {
+                    const newRow = document.createElement('div');
+                    newRow.className = 'package-row mb-3';
                     newRow.dataset.index = packageIndex;
-                    newRow.querySelector('.package-select').name = `service_packages[${packageIndex}]`;
-                    newRow.querySelector('.package-select').id = `service_packages_${packageIndex}`;
-                    newRow.querySelector('.package-select').value = '';
-                    newRow.querySelector('.package-quantity-input').name = `package_quantities[${packageIndex}]`;
-                    newRow.querySelector('.package-quantity-input').id = `package_quantities_${packageIndex}`;
-                    newRow.querySelector('.package-quantity-input').value = '1';
-                    newRow.querySelector('.subtotal-input').value = '0';
-                    newRow.querySelector('.package-services-list').innerHTML = '';
-                    const removeBtn = newRow.querySelector('.remove-package-btn');
-                    removeBtn.style.display = 'block';
-                    packagesContainer.appendChild(newRow);
-                    updateRemoveButtons(packagesContainer, '.package-row', '.remove-package-btn');
+                    newRow.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="service_packages_${packageIndex}" class="form-label">Paquete</label>
+                                <select class="form-control package-select" name="service_packages[${packageIndex}]" id="service_packages_${packageIndex}">
+                                    <option value="">Seleccione un paquete</option>
+                                    ${servicePackages.map(p => `<option value="${p.service_packages_id}" data-price="${p.precio}">${p.nombre} (${p.precio})</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="package_quantities_${packageIndex}" class="form-label">Cantidad</label>
+                                <input type="number" class="form-control quantity" name="package_quantities[${packageIndex}]" id="package_quantities_${packageIndex}" min="1" value="1">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Subtotal</label>
+                                <input type="text" class="form-control subtotal" readonly value="0">
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button" class="btn btn-danger delete-btn">Eliminar</button>
+                            </div>
+                        </div>
+                    `;
+                    packageContainer.appendChild(newRow);
+                    const select = newRow.querySelector('.package-select');
+                    const quantity = newRow.querySelector('.quantity');
+                    const deleteBtn = newRow.querySelector('.delete-btn');
+                    select.addEventListener('change', () => {
+                        calculateSubtotal(newRow);
+                        calculateTotal();
+                    });
+                    quantity.addEventListener('input', () => {
+                        calculateSubtotal(newRow);
+                        calculateTotal();
+                    });
+                    deleteBtn.addEventListener('click', () => {
+                        newRow.remove();
+                        calculateTotal();
+                        packageIndex--;
+                    });
                     packageIndex++;
+                    calculateSubtotal(newRow);
                     calculateTotal();
+                    console.log('Botón Agregar Otro Paquete clicado');
                 });
 
-                // Remove service or package row
-                function updateRemoveButtons(container, rowSelector, btnSelector) {
-                    const rows = container.querySelectorAll(rowSelector);
-                    rows.forEach((row, index) => {
-                        const removeBtn = row.querySelector(btnSelector);
-                        removeBtn.style.display = index === 0 ? 'none' : 'block';
-                        removeBtn.onclick = () => {
-                            row.remove();
+                // Attach change listeners to initial rows
+                const initialServiceRows = serviceContainer.querySelectorAll('.service-row');
+                initialServiceRows.forEach(row => {
+                    const select = row.querySelector('.service-select');
+                    const quantity = row.querySelector('.quantity');
+                    if (select && quantity) {
+                        select.addEventListener('change', () => {
+                            calculateSubtotal(row);
                             calculateTotal();
-                            updateRemoveButtons(container, rowSelector, btnSelector);
-                        };
-                    });
-                }
-
-                // Update included services list for a package
-                function updatePackageServicesList(packageRow) {
-                    const packageSelect = packageRow.querySelector('.package-select');
-                    const servicesList = packageRow.querySelector('.package-services-list');
-                    servicesList.innerHTML = '';
-
-                    if (packageSelect.value) {
-                        const packageId = packageSelect.value;
-                        const packagesData = JSON.parse(document.getElementById('services-data').dataset.packagesData);
-                        const servicesData = JSON.parse(document.getElementById('services-data').dataset.services);
-                        const includedServiceIds = packagesData[packageId] || [];
-
-                        includedServiceIds.forEach(serviceId => {
-                            const service = servicesData.find(s => s.services_id == serviceId);
-                            if (service) {
-                                const li = document.createElement('li');
-                                li.textContent = service.descripcion;
-                                servicesList.appendChild(li);
-                            }
+                        });
+                        quantity.addEventListener('input', () => {
+                            calculateSubtotal(row);
+                            calculateTotal();
                         });
                     }
-                }
+                });
 
-                // Initialize remove buttons
-                updateRemoveButtons(servicesContainer, '.service-row', '.remove-service-btn');
-                updateRemoveButtons(packagesContainer, '.package-row', '.remove-package-btn');
+                const initialPackageRows = packageContainer.querySelectorAll('.package-row');
+                initialPackageRows.forEach(row => {
+                    const select = row.querySelector('.package-select');
+                    const quantity = row.querySelector('.quantity');
+                    if (select && quantity) {
+                        select.addEventListener('change', () => {
+                            calculateSubtotal(row);
+                            calculateTotal();
+                        });
+                        quantity.addEventListener('input', () => {
+                            calculateSubtotal(row);
+                            calculateTotal();
+                        });
+                    }
+                });
 
-                // Initial calculation
+                // Initial total calculation
                 calculateTotal();
             });
         </script>

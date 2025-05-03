@@ -463,5 +463,5 @@ public function upload(Request $request, $quote_id)
     } catch (\Exception $e) {
         Log::error('Error al subir archivo: ' . $e->getMessage());
         return back()->with('error', 'Error al subir el archivo: ' . $e->getMessage());
-    }
+     }  
 }}

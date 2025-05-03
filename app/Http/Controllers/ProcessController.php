@@ -20,7 +20,7 @@ class ProcessController extends Controller
             ->where('status', 'pending')
             ->get();
 
-        return view('cotizacion.process.index', compact('processes'));
+        return view('processes.index', compact('processes'));
     }
 
     public function show(Process $process)
@@ -35,6 +35,7 @@ class ProcessController extends Controller
                 'quote.quoteServices.service',
                 'quote.quoteServices.servicePackage',
                 'analyses.service',
+                'responsable',
             ]);
 
             if (!$process->quote) {
@@ -310,17 +311,34 @@ class ProcessController extends Controller
         }
     }
 
-    /**
-     * Calculate the delivery date by adding processing days to the reception date.
-     *
-     * @param \Carbon\Carbon $fechaRecepcion
-     * @param int $diasProcesar
-     * @return \Carbon\Carbon
-     */
-    protected function calculateDeliveryDate(Carbon $fechaRecepcion, int $diasProcesar)
-    {
-        return $fechaRecepcion->copy()->addDays($diasProcesar);
+/**
+ * Calculate the delivery date excluding weekends and holidays.
+ *
+ * @param \Carbon\Carbon $startDate The starting date
+ * @param int $businessDays The number of business days to add
+ * @return \Carbon\Carbon The calculated delivery date
+ */
+protected function calculateDeliveryDate(\Carbon\Carbon $startDate, $businessDays)
+{
+    $currentDate = $startDate->copy();
+    $holidays = [
+        '2025-01-01', // Año Nuevo
+        '2025-05-01', // Día del Trabajo
+        '2025-12-25', // Navidad
+        // Agrega más festivos según tu país o región
+    ];
+    $daysAdded = 0;
+
+    while ($daysAdded < $businessDays) {
+        $currentDate->addDay();
+        // Check if the day is a weekday (Monday to Friday) and not a holiday
+        if ($currentDate->isWeekday() && !in_array($currentDate->toDateString(), $holidays)) {
+            $daysAdded++;
+        }
     }
+
+    return $currentDate;
+}
    
 
     public function destroy($process_id)

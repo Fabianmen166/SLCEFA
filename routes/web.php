@@ -97,7 +97,7 @@ Route::middleware(['auth'])->group(function () {
     ]);
 
     // Ruta para Procesos Abiertos
-    Route::get('/cotizaciones/process', [ProcessController::class, 'index'])->name('cotizacion.process.index');
+    Route::get('/cotizaciones/process', [ProcessController::class, 'index'])->name('processes.index');
 
     // Rutas para Cotizaciones y Procesos
     Route::prefix('cotizaciones')->group(function () {

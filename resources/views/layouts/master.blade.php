@@ -96,7 +96,7 @@
 
                         <!-- Procesos Abiertos -->
                         <li class="nav-item">
-                            <a href="{{ route('cotizacion.process.index') }}" class="nav-link text-success">
+                            <a href="{{ route('processes.index') }}" class="nav-link text-success">
                                 <i class="nav-icon fas fa-tasks"></i>
                                 <p>Procesos Abiertos</p>
                             </a>
