@@ -2,7 +2,7 @@
 
 @section('contenido')
     <center>
-        <img src="{{ asset('images/LogoAgrosoft2.png') }}" width="30%">
+        <img src="{{ asset('images/LogoAgrosoft2.png') }}" width="30%" alt="Logo Agrosoft">
     </center>
 
     <div class="card-body">
@@ -73,16 +73,27 @@
                                                 <td>{{ number_format($quoteService->subtotal, 2) }}</td>
                                             </tr>
                                             @if ($quoteService->servicePackage && $quoteService->servicePackage->included_services)
-                                                <tr>
-                                                    <td colspan="4">
-                                                        <strong>Servicios Incluidos:</strong>
-                                                        <ul>
-                                                            @foreach ($quoteService->servicePackage->included_services as $includedService)
-                                                                <li>{{ $includedService }}</li>
-                                                            @endforeach
-                                                        </ul>
-                                                    </td>
-                                                </tr>
+                                                @foreach ($quoteService->servicePackage->included_services as $includedService)
+                                                    @if (is_array($includedService) || is_object($includedService))
+                                                        <?php
+                                                            // Extraer solo la descripción si es un objeto o array
+                                                            $description = is_object($includedService) ? $includedService->description ?? $includedService->descripcion ?? 'Descripción no disponible' : $includedService;
+                                                        ?>
+                                                        <tr class="table-light">
+                                                            <td>Incluido</td>
+                                                            <td>↳ {{ $description }}</td>
+                                                            <td>-</td>
+                                                            <td>-</td>
+                                                        </tr>
+                                                    @else
+                                                        <tr class="table-light">
+                                                            <td>Incluido</td>
+                                                            <td>↳ {{ $includedService }}</td>
+                                                            <td>-</td>
+                                                            <td>-</td>
+                                                        </tr>
+                                                    @endif
+                                                @endforeach
                                             @endif
                                         @endif
                                     @endforeach
@@ -92,11 +103,13 @@
                             <p>Sin servicios ni paquetes.</p>
                         @endif
 
-                        <a href="{{ route('cotizacion.index') }}" class="btn btn-secondary">Volver</a>
-                        <a href="{{ route('cotizacion.comprobante', $quote->quote_id) }}" class="btn btn-primary">Descargar PDF</a>
+
+
+                        <div class="mt-4">
+                            <a href="{{ route('cotizacion.comprobante', $quote->quote_id) }}" class="btn btn-primary">Descargar PDF</a>
+                        </div>
                     </div>
                 </div>
-                <a href="{{ route('gestion_calidad.dashboard') }}" class="back-btn">Volver al Dashboard</a>
             </div>
         </center>
     </div>

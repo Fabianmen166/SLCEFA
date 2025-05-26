@@ -132,7 +132,223 @@ class ProcessController extends Controller
             return back()->with('error', 'Error al cargar los detalles del proceso: ' . $e->getMessage());
         }
     }
+/**
+     * Display a listing of analyses pending review with inline approval.
+     */
+    public function indexForReview()
+    {
+        // Obtener todos los análisis completados pero no aprobados, con sus relaciones
+        $analyses = Analysis::with(['process', 'service', 'phAnalysis.user', 'conductivityAnalysis.user'])
+                          ->where('status', 'completed')
+                          ->where('approved', false)
+                          ->get()
+                          ->map(function ($analysis) {
+                              // Determinar qué tipo de análisis es (pH o Conductividad)
+                              $subAnalysis = $analysis->phAnalysis ?? $analysis->conductivityAnalysis;
 
+                              if ($subAnalysis) {
+                                  $analysis->analysis_date = $subAnalysis->fecha_analisis;
+                                  $analysis->details = [
+                                      'internal_code' => $subAnalysis->consecutivo_no,
+                                      'analyst_name' => $subAnalysis->user ? $subAnalysis->user->name : 'N/A',
+                                      'controles_analiticos' => $subAnalysis->controles_analiticos ?? [],
+                                      'precision_analitica' => $subAnalysis->precision_analitica ?? [],
+                                      'veracidad_analitica' => $subAnalysis->veracidad_analitica ?? [],
+                                      'items_ensayo' => $subAnalysis->items_ensayo ?? [],
+                                      'type' => $analysis->phAnalysis ? 'ph' : 'conductivity', // Identificar el tipo
+                                  ];
+                                  $analysis->description = $analysis->service ? $analysis->service->description : 'N/A';
+                                  $analysis->review_status = $subAnalysis->review_status ?? 'pending';
+                                  $analysis->review_date = $subAnalysis->review_date;
+                                  $analysis->reviewed_by = $subAnalysis->reviewed_by;
+                                  $analysis->reviewer_role = $subAnalysis->reviewer_role;
+                                  $analysis->review_observations = $subAnalysis->review_observations;
+                                  $analysis->result = $this->extractResult($subAnalysis);
+                              } else {
+                                  $analysis->analysis_date = null;
+                                  $analysis->details = [
+                                      'internal_code' => 'N/A',
+                                      'analyst_name' => 'N/A',
+                                      'controles_analiticos' => [],
+                                      'precision_analitica' => [],
+                                      'veracidad_analitica' => [],
+                                      'items_ensayo' => [],
+                                      'type' => 'unknown',
+                                  ];
+                                  $analysis->description = $analysis->service ? $analysis->service->description : 'N/A';
+                                  $analysis->review_status = 'pending';
+                                  $analysis->review_date = null;
+                                  $analysis->reviewed_by = null;
+                                  $analysis->reviewer_role = null;
+                                  $analysis->review_observations = null;
+                                  $analysis->result = 'N/A';
+                              }
+
+                              return $analysis;
+                          });
+
+        // Log para depurar servicios
+        \Log::info('Servicios encontrados: ', ['services' => $analyses->pluck('service.description')->unique()]);
+
+        // Paginar manualmente
+        $perPage = 10;
+        $page = request()->get('page', 1);
+        $offset = ($page - 1) * $perPage;
+        $paginatedAnalyses = new LengthAwarePaginator(
+            $analyses->slice($offset, $perPage),
+            $analyses->count(),
+            $perPage,
+            $page,
+            ['path' => route('process.review_index')]
+        );
+
+        return view('processes.review_index', ['analyses' => $paginatedAnalyses]);
+    }
+
+    /**
+     * Extract the result for the specific analysis.
+     */
+    private function extractResult($subAnalysis)
+    {
+        if (!$subAnalysis || empty($subAnalysis->items_ensayo)) return 'N/A';
+        $firstItem = $subAnalysis->items_ensayo[0];
+        // Para conductividad, preferir valor_leido_dsm; para pH, usar valor_leido
+        return $firstItem['valor_leido_dsm'] ?? $firstItem['valor_leido'] ?? 'N/A';
+    }
+
+    /**
+     * Store the review for an analysis (inline from the table).
+     */
+    public function storeReview(Request $request, $analysisId)
+    {
+        $request->validate([
+            'review_status' => 'required|in:approved,rejected',
+            'review_observations' => 'nullable|string',
+        ]);
+
+        $analysis = Analysis::findOrFail($analysisId);
+        $subAnalysis = $analysis->phAnalysis ?? $analysis->conductivityAnalysis;
+
+        if ($subAnalysis) {
+            $subAnalysis->update([
+                'review_status' => $request->review_status,
+                'reviewed_by' => Auth::user()->name,
+                'reviewer_role' => Auth::user()->role ?? 'Admin',
+                'review_date' => now(),
+                'review_observations' => $request->review_observations,
+            ]);
+
+            // Actualizar el estado de aprobación del análisis
+            $analysis->update([
+                'approved' => $request->review_status === 'approved',
+            ]);
+
+            return redirect()->route('process.review_index')
+                             ->with('success', 'Revisión registrada exitosamente.');
+        }
+
+        return redirect()->route('process.review_index')
+                         ->with('error', 'No se encontró el análisis.');
+    }
+
+    /**
+     * Display a listing of completed processes ready for report generation.
+     */
+    public function completedProcesses()
+    {
+        // Obtener procesos cuyos análisis estén completados y aprobados
+        $processes = Process::with(['analyses'])
+                          ->get()
+                          ->filter(function ($process) {
+                              return $process->analyses->count() > 0 && $process->analyses->every(function ($analysis) {
+                                  return $analysis->status === 'completed' && $analysis->approved;
+                              });
+                          });
+
+        // Paginar manualmente
+        $perPage = 10;
+        $page = request()->get('page', 1);
+        $offset = ($page - 1) * $perPage;
+        $paginatedProcesses = new \Illuminate\Pagination\LengthAwarePaginator(
+            $processes->slice($offset, $perPage),
+            $processes->count(),
+            $perPage,
+            $page,
+            ['path' => route('process.completed')]
+        );
+
+        return view('processes.completed', ['processes' => $paginatedProcesses]);
+    }
+
+    /**
+     * Generate a PDF report for a process.
+     */
+    public function generateReport($processId)
+    {
+        $process = Process::where('process_id', $processId)
+                        ->with(['quote.customer', 'quote.quoteServices.service', 'quote.quoteServices.servicePackage', 'analyses'])
+                        ->firstOrFail();
+
+        // Verificar si todos los análisis están completados y aprobados
+        $allApproved = $process->analyses->every(function ($analysis) {
+            return $analysis->status === 'completed' && $analysis->approved;
+        });
+
+        if (!$allApproved) {
+            return redirect()->route('process.completed')
+                           ->with('error', 'Faltan análisis por completar o aprobar.');
+        }
+
+        // Generar el PDF usando la plantilla process_results.blade.php
+        $pdf = Pdf::loadView('pdf.process_results', compact('process'));
+        return $pdf->download('resultados_proceso_' . $process->process_id . '.pdf');
+    }
+
+    /**
+     * Preview the PDF report for a process.
+     */
+    public function previewReport($processId)
+    {
+        $process = Process::where('process_id', $processId)
+                        ->with(['quote.customer', 'quote.quoteServices.service', 'quote.quoteServices.servicePackage', 'analyses'])
+                        ->firstOrFail();
+
+        // Verificar si todos los análisis están completados y aprobados
+        $allApproved = $process->analyses->every(function ($analysis) {
+            return $analysis->status === 'completed' && $analysis->approved;
+        });
+
+        if (!$allApproved) {
+            return redirect()->route('process.completed')
+                           ->with('error', 'Faltan análisis por completar o aprobar.');
+        }
+
+        return view('pdf.process_results', compact('process'));
+    }
+    /**
+     * Show the form to review a specific analysis.
+     */
+    public function reviewAnalysis($analysis_id)
+    {
+        $analysis = Analysis::with('process', 'service', 'phAnalysis')->findOrFail($analysis_id);
+
+        // Preparar los datos para la vista
+        $analysis->analysis_date = $analysis->phAnalysis ? $analysis->phAnalysis->fecha_analisis : null;
+        $analysis->details = [
+            'internal_code' => $analysis->phAnalysis ? $analysis->phAnalysis->consecutivo_no : 'N/A',
+            'analyst_name' => $analysis->phAnalysis && $analysis->phAnalysis->user ? $analysis->phAnalysis->user->name : 'N/A',
+        ];
+        $analysis->review_status = $analysis->phAnalysis ? $analysis->phAnalysis->review_status : 'pending';
+        $analysis->review_date = $analysis->phAnalysis ? $analysis->phAnalysis->review_date : null;
+        $analysis->reviewed_by = $analysis->phAnalysis ? $analysis->phAnalysis->reviewed_by : null;
+        $analysis->reviewer_role = $analysis->phAnalysis ? $analysis->phAnalysis->reviewer_role : null;
+        $analysis->review_observations = $analysis->phAnalysis ? $analysis->phAnalysis->review_observations : null;
+
+        return view('processes.review_analysis', compact('analysis'));
+    }
+
+   
+    
     public function technicalIndex()
     {
         try {
@@ -167,150 +383,50 @@ class ProcessController extends Controller
                            ->with('error', 'Error al cargar los procesos técnicos: ' . $e->getMessage());
         }
     }
+public function start(Request $request, $quote_id)
+{
+    $quote = Quote::with(['quoteServices'])->where('quote_id', $quote_id)->firstOrFail();
     
-    public function start(Request $request, $quote)
-    {
-        $request->validate([
-            'item_code' => 'required|string|max:255|unique:processes,process_id',
-            'comunicacion_cliente' => 'nullable|string',
-            'dias_procesar' => 'required|integer|min:1',
-            'descripcion' => 'nullable|string',
-            'lugar_muestreo' => 'nullable|string|max:255',
-            'fecha_muestreo' => 'nullable|date',
+    $unitCount = $request->input('unit_count');
+    $services = $request->input('services', []); // Array de servicios seleccionados por terreno
+
+    for ($unitIndex = 0; $unitIndex < $unitCount; $unitIndex++) {
+        $description = $request->input("descriptions.$unitIndex");
+        $itemCode = $request->input("item_codes.$unitIndex");
+        $selectedServiceIds = $services[$unitIndex] ?? []; // Servicios seleccionados para este terreno
+
+        // Crear el proceso (terreno)
+        $process = Process::create([
+            'process_id' => 'PRC-' . time() . '-' . $unitIndex,
+            'quote_id' => $quote_id,
+            'item_code' => $itemCode,
+            'status' => 'pending',
+            'comunicacion_cliente' => $request->input('comunicacion_cliente'),
+            'dias_procesar' => $request->input('dias_procesar'),
+            'fecha_recepcion' => now(),
+            'descripcion' => $description,
+            'lugar_muestreo' => $request->input('lugar_muestreo'),
+            'fecha_muestreo' => $request->input('fecha_muestreo'),
+            'responsable_recepcion' => auth()->user()->user_id,
+            'fecha_entrega' => now()->addDays($request->input('dias_procesar')),
         ]);
 
-        try {
-            // Find the quote by quote_id
-            $quote = Quote::where('quote_id', $quote)->firstOrFail();
-            Log::info('Starting process for quote:', ['quote_id' => $quote->quote_id]);
-
-            $fechaRecepcion = now();
-            $diasProcesar = (int) $request->dias_procesar;
-            $fechaEntrega = $this->calculateDeliveryDate($fechaRecepcion, $diasProcesar);
-            $processId = $request->item_code;
-
-            // Create the process
-            $process = Process::create([
-                'process_id' => $processId,
-                'quote_id' => $quote->quote_id,
-                'item_code' => $request->item_code,
-                'comunicacion_cliente' => $request->comunicacion_cliente,
-                'dias_procesar' => $diasProcesar,
-                'fecha_recepcion' => $fechaRecepcion,
-                'descripcion' => $request->descripcion,
-                'lugar_muestreo' => $request->lugar_muestreo,
-                'fecha_muestreo' => $request->fecha_muestreo,
-                'responsable_recepcion' => Auth::id(),
-                'fecha_entrega' => $fechaEntrega,
-                'status' => 'pending',
-            ]);
-
-            // Get the services associated with the quote from the quote_services table
-            $quoteServices = $quote->quoteServices()->get();
-            Log::info('Quote services retrieved:', ['quote_services' => $quoteServices->toArray()]);
-
-            $serviceIds = [];
-            foreach ($quoteServices as $quoteService) {
-                if ($quoteService->services_id) {
-                    // Individual service
-                    $serviceIds[] = (int) $quoteService->services_id;
-                    Log::info('Added individual service ID:', ['service_id' => $quoteService->services_id]);
-                } elseif ($quoteService->service_packages_id) {
-                    // Service package
-                    $package = ServicePackage::find($quoteService->service_packages_id);
-                    if ($package) {
-                        // Use the included_service_ids accessor to get the array of service IDs
-                        $includedServiceIds = $package->included_service_ids;
-
-                        if (is_array($includedServiceIds) && !empty($includedServiceIds)) {
-                            // Convert each service ID to an integer
-                            $includedServiceIds = array_map('intval', $includedServiceIds);
-                            // Validate that all service IDs exist
-                            $validServiceIds = [];
-                            foreach ($includedServiceIds as $serviceId) {
-                                if (Service::where('services_id', $serviceId)->exists()) {
-                                    $validServiceIds[] = $serviceId;
-                                } else {
-                                    Log::warning('Invalid service ID in package:', [
-                                        'service_package_id' => $package->service_packages_id,
-                                        'service_id' => $serviceId,
-                                    ]);
-                                }
-                            }
-                            // Check for duplicates in included_service_ids
-                            if (count($validServiceIds) !== count(array_unique($validServiceIds))) {
-                                Log::warning('Duplicate service IDs in package:', [
-                                    'service_package_id' => $package->service_packages_id,
-                                    'included_service_ids' => $validServiceIds,
-                                ]);
-                            }
-                            $serviceIds = array_merge($serviceIds, $validServiceIds);
-                            Log::info('Added service IDs from package:', ['included_service_ids' => $validServiceIds]);
-                        } else {
-                            Log::warning('included_service_ids is empty or not an array:', [
-                                'service_package_id' => $package->service_packages_id,
-                                'included_service_ids' => $includedServiceIds,
-                            ]);
-                        }
-                    }
-                }
+        // Asociar los servicios seleccionados al proceso (terreno)
+        foreach ($selectedServiceIds as $quoteServiceId) {
+            $quoteService = $quote->quoteServices->find($quoteServiceId);
+            if ($quoteService) {
+                // Aquí puedes guardar la asociación entre el proceso y el servicio
+                // Por ejemplo, podrías crear una tabla intermedia `process_services`
+                \App\Models\ProcessService::create([
+                    'process_id' => $process->process_id,
+                    'quote_service_id' => $quoteServiceId,
+                ]);
             }
-
-            // Remove duplicates
-            $serviceIds = array_unique($serviceIds);
-            Log::info('Final service IDs for process:', ['service_ids' => $serviceIds]);
-
-            // Create an Analysis record for each service
-            foreach ($serviceIds as $serviceId) {
-                try {
-                    if (Service::where('services_id', $serviceId)->exists()) {
-                        // Check if an Analysis record already exists to avoid duplicates
-                        $existingAnalysis = Analysis::where('process_id', $process->process_id)
-                                                    ->where('service_id', $serviceId)
-                                                    ->first();
-
-                        if ($existingAnalysis) {
-                            Log::info('Analysis record already exists, skipping:', [
-                                'process_id' => $process->process_id,
-                                'service_id' => $serviceId,
-                            ]);
-                            continue;
-                        }
-
-                        $analysis = Analysis::create([
-                            'process_id' => $process->process_id,
-                            'service_id' => $serviceId,
-                            'status' => 'pending',
-                        ]);
-                        Log::info('Created analysis record:', [
-                            'process_id' => $process->process_id,
-                            'service_id' => $serviceId,
-                            'analysis_id' => $analysis->id,
-                        ]);
-                    } else {
-                        Log::warning('Service ID does not exist:', ['service_id' => $serviceId]);
-                    }
-                } catch (\Exception $e) {
-                    Log::error('Failed to create analysis record:', [
-                        'process_id' => $process->process_id,
-                        'service_id' => $serviceId,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-
-            // Redirect to the correct route
-            return redirect()->route('processes.show', $processId)
-                            ->with('success', 'Proceso iniciado exitosamente.');
-        } catch (\Exception $e) {
-            Log::error('Error starting process: ' . $e->getMessage(), [
-                'user_id' => Auth::id(),
-                'stack_trace' => $e->getTraceAsString(),
-            ]);
-            return back()->with('error', 'Error al iniciar el proceso: ' . $e->getMessage())->withInput();
         }
     }
 
+    return redirect()->route('cotizacion.index')->with('success', 'Procesos iniciados correctamente.');
+}
 /**
  * Calculate the delivery date excluding weekends and holidays.
  *

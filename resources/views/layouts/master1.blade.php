@@ -98,100 +98,13 @@
 
                         <!-- Bodega Finca -->
                         <li class="nav-item has-treeview">
-                            <a href="#" class="nav-link text-success">
+                            <a href="{{ route('process.completed') }}" class="nav-link text-dark">
+
                                 <i class="fas fa-warehouse"></i>
-                                <p>Bodega Finca <i class="fas fa-angle-left right"></i></p>
+                                <p>Informes<i class="fas fa-angle-left right"></i></p>
                             </a>
-                            <ul class="nav nav-treeview">
-                                <li class="nav-item has-treeview">
-                                    <a href="#" class="nav-link text-dark">
-                                        <i class="nav-icon fas fa-box"></i>
-                                        <p>Insumos <i class="fas fa-angle-left right"></i></p>
-                                    </a>
-                                    <ul class="nav nav-treeview">
-                                        <li class="nav-item">
-                                            <a href="#" class="nav-link text-dark">
-                                                <i class="nav-icon fas fa-edit"></i>
-                                                <p>Ingreso</p>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="#" class="nav-link text-dark">
-                                                <i class="nav-icon fas fa-clipboard-list"></i>
-                                                <p>Lista</p>
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </li>
-                                <li class="nav-item has-treeview">
-                                    <a href="#" class="nav-link text-dark">
-                                        <i class="nav-icon fas fa-tools"></i>
-                                        <p>Herramientas <i class="fas fa-angle-left right"></i></p>
-                                    </a>
-                                    <ul class="nav nav-treeview">
-                                        <li class="nav-item">
-                                            <a href="#" class="nav-link text-dark">
-                                                <i class="nav-icon fas fa-edit"></i>
-                                                <p>Ingreso</p>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="#" class="nav-link text-dark">
-                                                <i class="nav-icon fas fa-clipboard-list"></i>
-                                                <p>Listas</p>
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <!-- Roles Mayordomo -->
-                        <li class="nav-item">
-                            <a href="#" class="nav-link text-success">
-                                <i class="fas fa-user"></i>
-                                <p>Roles Mayordomo</p>
-                            </a>
-                        </li>
-
-                        <!-- Análisis de Producción -->
-                        <li class="nav-item">
-                            <a href="#" class="nav-link text-success">
-                                <i class="fas fa-chart-bar"></i>
-                                <p>Análisis de Producción</p>
-                            </a>
-                        </li>
-
-                        <!-- Geo Referencias -->
-                        <li class="nav-item">
-                            <a href="#" class="nav-link text-success">
-                                <i class="nav-icon fas fa-globe"></i>
-                                <p>Geo Referencias</p>
-                            </a>
-                        </li>
-
-                        <!-- Reportes -->
-                        <li class="nav-item has-treeview">
-                            <a href="#" class="nav-link text-danger">
-                                <i class="nav-icon fas fa-file-alt"></i>
-                                <p>Reportes <i class="fas fa-angle-left right"></i></p>
-                            </a>
-                            <ul class="nav nav-treeview">
-                                <li class="nav-item">
-                                    <a href="#" class="nav-link text-dark">
-                                        <i class="nav-icon fas fa-tasks"></i>
-                                        <p>Actividades</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="#" class="nav-link text-dark">
-                                        <i class="nav-icon fas fa-file-invoice-dollar"></i>
-                                        <p>Contable</p>
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                    </ul>
+                           
+                               
                 </nav>
                 <!-- /.sidebar-menu -->
             </div>

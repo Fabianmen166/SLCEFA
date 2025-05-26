@@ -20,6 +20,10 @@ class Service extends Model
         'acreditado',
     ];
 
+    public function analyses()
+    {
+        return $this->hasMany(Analysis::class, 'service_id', 'services_id');
+    }
     public function quoteServices()
     {
         return $this->hasMany(QuoteService::class, 'services_id', 'services_id');

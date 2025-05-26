@@ -84,6 +84,17 @@
                                 </a>
                             </li>
                         @endif
+                                                
+                        @if (Auth::user()->role === 'personal_tecnico')
+                            <li class="nav-item">
+                                <a href="{{ route('conductivity.index') }}" class="nav-link text-success">
+                                    <i class="nav-icon fas fa-flask"></i>
+                                    <p>Conductividad</p>
+                                </a>
+                            </li>
+                        @endif
+
+
                     </ul>
                 </nav>
                 <!-- /.sidebar-menu -->

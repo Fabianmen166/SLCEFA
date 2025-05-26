@@ -24,72 +24,97 @@
     <!-- Main Content -->
     <section class="content">
         <div class="container-fluid">
+            @if (session('success'))
+                <div class="alert alert-success alert-dismissible">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                    {{ session('success') }}
+                </div>
+            @endif
+            @if (session('error'))
+                <div class="alert alert-danger alert-dismissible">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            <!-- Pending Analyses Section -->
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Lista de Análisis de pH</h3>
+                    <h3 class="card-title">Procesar Análisis de pH</h3>
                 </div>
                 <div class="card-body">
-                    @if (session('success'))
-                        <div class="alert alert-success alert-dismissible">
-                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-                            {{ session('success') }}
+                    @if ($processes->isEmpty())
+                        <p>No hay análisis de pH pendientes para procesar.</p>
+                    @else
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Proceso</th>
+                                    <th>Cantidad de Análisis Pendientes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($processes as $process)
+                                    <tr>
+                                        <td>{{ $process->process_id }}</td>
+                                        <td>{{ $process->analyses->where('status', 'pending')->count() }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                        <div class="mt-3">
+                            <a href="{{ route('ph_analysis.process_all') }}" class="btn btn-primary">
+                                Iniciar Proceso
+                            </a>
                         </div>
                     @endif
-                    @if (session('error'))
-                        <div class="alert alert-danger alert-dismissible">
-                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-                            {{ session('error') }}
-                        </div>
-                    @endif
+                </div>
+            </div>
 
+            <!-- Returned Analyses Section -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Análisis Devueltos</h3>
+                </div>
+                <div class="card-body">
                     @if ($phAnalyses->isEmpty())
-                        <p>No hay análisis de pH registrados.</p>
+                        <p>No hay análisis devueltos para mostrar.</p>
                     @else
                         <table class="table table-bordered table-hover">
                             <thead>
                                 <tr>
                                     <th>Proceso</th>
                                     <th>Servicio</th>
-                                    <th>Fecha de Análisis</th>
+                                    <th>Fecha de Creación</th>
                                     <th>Estado de Revisión</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($phAnalyses as $phAnalysis)
+                                @foreach ($phAnalyses as $analysis)
                                     <tr>
-                                        <td>{{ $phAnalysis->analysis->process->process_id }}</td>
-                                        <td>{{ $phAnalysis->analysis->service->descripcion }}</td>
-                                        <td>{{ $phAnalysis->fecha_analisis }}</td>
+                                        <td>{{ $analysis->process ? $analysis->process->process_id : 'No asignado' }}</td>
+                                        <td>{{ $analysis->service ? $analysis->service->descripcion : 'Sin servicio' }}</td>
+                                        <td>{{ $analysis->created_at }}</td>
                                         <td>
-                                            @if ($phAnalysis->review_status === 'pending')
-                                                <span class="badge badge-warning">Pendiente</span>
-                                            @elseif ($phAnalysis->review_status === 'approved')
-                                                <span class="badge badge-success">Aprobado</span>
-                                            @elseif ($phAnalysis->review_status === 'rejected')
-                                                <span class="badge badge-danger">Rechazado</span>
-                                            @else
-                                                <span class="badge badge-secondary">Sin revisar</span>
-                                            @endif
+                                            <span class="badge badge-danger">Rechazado</span>
                                         </td>
                                         <td>
-                                            @if ($phAnalysis->review_status === 'rejected')
-                                                <a href="{{ route('ph_analysis.edit_analysis', $phAnalysis->id) }}" class="btn btn-warning btn-sm">
+                                            @if ($analysis->process)
+                                                <a href="{{ route('ph_analysis.edit_analysis', $analysis->id) }}" class="btn btn-warning btn-sm">
                                                     Corregir
                                                 </a>
+                                                <a href="{{ route('ph_analysis.download_report', $analysis->id) }}" class="btn btn-info btn-sm">
+                                                    Descargar Reporte
+                                                </a>
+                                            @else
+                                                <span class="text-muted">Acciones no disponibles</span>
                                             @endif
-                                            <a href="{{ route('ph_analysis.download_report', $phAnalysis->analysis->id) }}" class="btn btn-info btn-sm">
-                                                Descargar Reporte
-                                            </a>
                                         </td>
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
-
-                        <div class="mt-3">
-                            {{ $phAnalyses->links() }}
-                        </div>
                     @endif
                 </div>
             </div>

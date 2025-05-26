@@ -114,13 +114,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('cotizaciones/{id}/comprobante', [QuoteController::class, 'comprobante'])->name('cotizacion.comprobante');
     Route::get('cotizaciones/{id}/upload-form', [QuoteController::class, 'showUploadForm'])->name('cotizacion.show_upload_form');
         // Procesos
-        Route::post('/{quote}/start-process', [ProcessController::class, 'start'])->name('cotizacion.process.start');
+        Route::post('/{quote}/start-process', [ProcessController::class, 'start'])->name('process.start');
         Route::get('/process/{process}', [ProcessController::class, 'show'])->name('processes.show');
         // routes/web.php
 Route::delete('/cotizaciones/process/{process_id}', [ProcessController::class, 'destroy'])->name('cotizacion.process.destroy');
 Route::post('/cotizaciones/process/{process_id}/archive', [ProcessController::class, 'archive'])->name('cotizacion.process.archive');
     });
-
+Route::post('/cotizaciones/{quote_id}/process/start', [ProcessController::class, 'start'])->name('cotizacion.process.start');
     Route::middleware('role:personal_tecnico')->group(function () {
         Route::get('/ph-analyses', [PhAnalysisController::class, 'index'])->name('ph_analysis.index'); // Add this route
         Route::get('/processes/technical', [ProcessController::class, 'technicalIndex'])->name('process.technical_index');
@@ -153,13 +153,24 @@ Route::get('/processes/ph-analysis/{analysisId}/download', [ProcessController::c
         Route::post('/process/{process_id}/service/{service_id}/analysis', [ProcessController::class, 'storeAnalysis'])->name('process.store_analysis');
         Route::get('/process/edit-analysis/{analysis_id}', [ProcessController::class, 'editAnalysis'])->name('process.edit_analysis');
         Route::post('/process/update-analysis/{analysis_id}', [ProcessController::class, 'updateAnalysis'])->name('process.update_analysis');
+        Route::get('/ph-analyses', [PhAnalysisController::class, 'index'])->name('ph_analysis.index');
+        Route::get('/ph-analyses/process-all', [PhAnalysisController::class, 'processAll'])->name('ph_analysis.process_all'); 
+ Route::post('/ph-analyses/store', [PhAnalysisController::class, 'storePhAnalysis'])->name('ph_analysis.store');   
+        Route::post('/ph-analyses/store', [PhAnalysisController::class, 'storePhAnalysis'])->name('ph_analysis.store');
     });
 
     Route::middleware('role:admin')->group(function () {
-        Route::get('/processes/review', [ProcessController::class, 'indexForReview'])->name('process.review_index');
-        Route::get('/process/review/{analysis_id}', [ProcessController::class, 'reviewAnalysis'])->name('process.review_analysis');
-        Route::post('/process/review/{analysis_id}', [ProcessController::class, 'storeReview'])->name('process.store_review');
-        // routes/web.php
-Route::get('/cotizaciones/process/{process_id}/results-pdf', [ProcessController::class, 'generateResultsPDF'])->name('cotizacion.process.results_pdf');
+     Route::get('/processes/review', [ProcessController::class, 'indexForReview'])->name('process.review_index');
+Route::post('/process/{analysis_id}/review', [ProcessController::class, 'storeReview'])->name('process.store_review');
+Route::get('/processes/completed', [ProcessController::class, 'completedProcesses'])->name('process.completed');
+Route::get('/process/{processId}/generate-report', [ProcessController::class, 'generateReport'])->name('process.generate_report');
+Route::get('/process/{processId}/preview-report', [ProcessController::class, 'previewReport'])->name('process.preview_report');
     });
+});
+
+
+Route::prefix('conductivity')->group(function () {
+    Route::get('/index', [App\Http\Controllers\ConductivityAnalysisController::class, 'index'])->name('conductivity.index');
+    Route::get('/create', [App\Http\Controllers\ConductivityAnalysisController::class, 'create'])->name('conductivity.create');
+    Route::post('/store', [App\Http\Controllers\ConductivityAnalysisController::class, 'store'])->name('conductivity.store');
 });
