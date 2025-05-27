@@ -12,15 +12,15 @@
 
         body {
             font-family: Arial, sans-serif;
-            margin: 15px;
+            margin: 2cm;
             color: #333;
             font-size: 5pt;
             line-height: 1.4;
         }
         .container {
-            max-width: 1000px;
+            width: 100%;
             margin: 0 auto;
-            padding: 15px;
+            padding: 0;
         }
         .header {
             display: grid;
@@ -187,16 +187,16 @@
                         }
                     }
                 ?>
-                <img src="{{ $allAccredited ? public_path('img/logo_acreditado.jpg') : public_path('img/logo.jpg') }}" alt="{{ $allAccredited ? 'logo_acreditado' : 'Logo' }}" style="width: 60px; height: auto; transform: translate(30px, 80px);">
+                <img src="{{ $allAccredited ? public_path('img/logo_acreditado.jpg') : public_path('img/logo.jpg') }}" alt="{{ $allAccredited ? 'logo_acreditado' : 'Logo' }}" style="width: 80px; height: auto; transform: translate(0px, 80px);">
             </div>
             <!-- Columna centro Textos -->
-            <div class="center-text" style="transform: translate(30px, 30px);">
+            <div class="center-text" style="transform: translate(0px, 30px);">
                 <div>LABORATORIO DE CIENCIAS BÁSICAS</div>
                 <div>PROCEDIMIENTO DE REVISIÓN DE SOLICITUDES, OFERTAS Y CONTRATOS</div>
-                <div>COTIZACIÓN</div>
+                <div>FORMATO COTIZACION DE CLIENTES</div>
             </div>
             <!-- Columna derecha Versión, Código, Página -->
-            <div class="version-info" style="width: 80px; height: auto; transform: translate(600px, 20px);">
+            <div class="version-info" style="width: 80px; height: auto; transform: translate(550px, 20px);">
                 <div><strong>Versión:</strong> 2</div>
                 <div><strong>Código:</strong> #{{ $quote->quote_id }}</div>
                 <div><strong>Páginas:</strong> 1 de 1</div>
@@ -321,9 +321,18 @@
                             <td>{{ isset($quoteService->subtotal) ? number_format($quoteService->subtotal, 2) : 'NA' }}</td>
                         </tr>
                     @endforeach
+                    <tr style="font-weight: bold;">
+                        <td colspan="4" style="text-align: right;">Total:</td>
+                        <td>{{ number_format($quote->total, 2) }}</td>
+                    </tr>
                 </tbody>
             </table>
-            <p class="total">Total: {{ number_format($quote->total, 2) }}</p>
+        </div>
+
+        <!-- Información del cliente -->
+        <div class="section info" style="transform: translate(0px, -34px);">
+            <div class="title">Información del Cliente</div>
+            <p>{{ $clientText }}</p>
         </div>
 
         <!-- Descripción de los servicios -->
@@ -342,12 +351,6 @@
                     @if (!$loop->last), @endif
                 @endforeach.
             </p>
-        </div>
-
-        <!-- Información del cliente -->
-        <div class="section info" style="transform: translate(0px, -34px);">
-            <div class="title">Información del Cliente</div>
-            <p>{{ $clientText }}</p>
         </div>
 
         <!-- Condiciones Generales -->
@@ -403,6 +406,12 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Información del Cotizante -->
+        <div class="section" style="margin-top: 20px; text-align: center;">
+            <p><strong>Cotizante:</strong> {{ $quote->customer->razon_social ?? 'No disponible' }}</p>
+            <p><strong>Cédula/NIT:</strong> {{ $quote->customer->nit ?? 'No disponible' }}</p>
         </div>
     </div>
 </body>

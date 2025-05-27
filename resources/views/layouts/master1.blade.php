@@ -103,8 +103,61 @@
                                 <i class="fas fa-warehouse"></i>
                                 <p>Informes<i class="fas fa-angle-left right"></i></p>
                             </a>
+<<<<<<< HEAD
                            
                                
+=======
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item has-treeview">
+                                    <a href="#" class="nav-link text-dark">
+                                        <i class="nav-icon fas fa-box"></i>
+                                        <p>Insumos <i class="fas fa-angle-left right"></i></p>
+                                    </a>
+                                    <ul class="nav nav-treeview">
+                                        <li class="nav-item">
+                                            <a href="#" class="nav-link text-dark">
+                                                <i class="nav-icon fas fa-edit"></i>
+                                                <p>Ingreso</p>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a href="#" class="nav-link text-dark">
+                                                <i class="nav-icon fas fa-clipboard-list"></i>
+                                                <p>Lista</p>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li class="nav-item has-treeview">
+                                    <a href="#" class="nav-link text-dark">
+                                        <i class="nav-icon fas fa-tools"></i>
+                                        <p>Herramientas <i class="fas fa-angle-left right"></i></p>
+                                    </a>
+                                    <ul class="nav nav-treeview">
+                                        <li class="nav-item">
+                                            <a href="#" class="nav-link text-dark">
+                                                <i class="nav-icon fas fa-edit"></i>
+                                                <p>Ingreso</p>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a href="#" class="nav-link text-dark">
+                                                <i class="nav-icon fas fa-clipboard-list"></i>
+                                                <p>Listas</p>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Roles Mayordomo -->
+                        
+
+                        <!-- Reportes -->
+                       
+                    </ul>
+>>>>>>> 91b94f6 (por si acaso)
                 </nav>
                 <!-- /.sidebar-menu -->
             </div>
