@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use App\Models\ServiceProcessDetail;
 
 class ProcessController extends Controller
 {
@@ -25,113 +26,12 @@ class ProcessController extends Controller
 
     public function show(Process $process)
     {
-        try {
-            if (!method_exists(Quote::class, 'quoteServices')) {
-                throw new \Exception('La relación quoteServices no está definida en el modelo Quote.');
-            }
-
-            $process->load([
-                'quote.customer.customerType',
-                'quote.quoteServices.service',
-                'quote.quoteServices.servicePackage',
-                'analyses.service',
-                'responsable',
-            ]);
-
-            if (!$process->quote) {
-                throw new \Exception('No se encontró la cotización asociada al proceso.');
-            }
-
-            $quoteServices = $process->quote->quoteServices;
-            $quoteItems = collect();
-            $servicesToDo = collect();
-
-            foreach ($quoteServices as $quoteService) {
-                if ($quoteService->services_id) {
-                    $service = $quoteService->service;
-                    if (!$service) {
-                        continue;
-                    }
-                    $analysis = $process->analyses->firstWhere('service_id', $service->services_id);
-                    $quoteItems->push((object) [
-                        'type' => 'service',
-                        'id' => $service->services_id,
-                        'name' => $service->descripcion,
-                        'price' => $service->precio,
-                        'accredited' => $service->acreditado,
-                        'quantity' => $quoteService->cantidad,
-                        'subtotal' => $quoteService->subtotal,
-                    ]);
-                    $servicesToDo->push((object) [
-                        'id' => $service->services_id,
-                        'name' => $service->descripcion,
-                        'price' => $service->precio,
-                        'accredited' => $service->acreditado,
-                        'quantity' => $quoteService->cantidad,
-                        'subtotal' => $quoteService->subtotal,
-                        'analysis' => $analysis,
-                        'package_name' => null,
-                    ]);
-                } elseif ($quoteService->service_packages_id) {
-                    $package = $quoteService->servicePackage;
-                    if ($package) {
-                        $includedServices = $package->getIncludedServiceObjects();
-                        $quoteItems->push((object) [
-                            'type' => 'package',
-                            'id' => $package->service_packages_id,
-                            'name' => $package->nombre,
-                            'price' => $package->precio,
-                            'accredited' => $package->acreditado,
-                            'quantity' => $quoteService->cantidad,
-                            'subtotal' => $quoteService->subtotal,
-                            'services' => $includedServices->map(function ($service) use ($process) {
-                                $analysis = $process->analyses->firstWhere('service_id', $service->services_id);
-                                return [
-                                    'id' => $service->services_id,
-                                    'name' => $service->descripcion,
-                                    'price' => $service->precio,
-                                    'accredited' => $service->acreditado,
-                                    'analysis' => $analysis,
-                                ];
-                            })->toArray(),
-                        ]);
-                        foreach ($includedServices as $service) {
-                            $analysis = $process->analyses->firstWhere('service_id', $service->services_id);
-                            $servicesToDo->push((object) [
-                                'id' => $service->services_id,
-                                'name' => $service->descripcion,
-                                'price' => $service->precio,
-                                'accredited' => $service->acreditado,
-                                'quantity' => $quoteService->cantidad,
-                                'subtotal' => null,
-                                'analysis' => $analysis,
-                                'package_name' => $package->nombre,
+        $process->load(['serviceProcessDetails.quoteService']);
+        return view('processes.show', [
+            'process' => $process
                             ]);
                         }
-                    }
-                }
-            }
 
-            $pendingServices = $servicesToDo->filter(function ($service) {
-                return !$service->analysis || $service->analysis->status === 'pending';
-            });
-
-            $completedServices = $servicesToDo->filter(function ($service) {
-                return $service->analysis && $service->analysis->status === 'completed';
-            });
-
-            return view('processes.show', compact(
-                'process',
-                'quoteItems',
-                'servicesToDo',
-                'pendingServices',
-                'completedServices'
-            ));
-        } catch (\Exception $e) {
-            \Log::error('Error en ProcessController@show: ' . $e->getMessage());
-            return back()->with('error', 'Error al cargar los detalles del proceso: ' . $e->getMessage());
-        }
-    }
 /**
      * Display a listing of analyses pending review with inline approval.
      */
@@ -390,10 +290,20 @@ public function start(Request $request, $quote_id)
     $unitCount = $request->input('unit_count');
     $services = $request->input('services', []); // Array de servicios seleccionados por terreno
 
+    \Log::info('--- INICIO DE PROCESOS ---');
+    \Log::info('unitCount', ['unitCount' => $unitCount]);
+    \Log::info('services array recibido', $services);
+    \Log::info('quoteServices en BD', $quote->quoteServices->map(function($qs){ return ['id'=>$qs->id, 'unit_index'=>$qs->unit_index]; })->toArray());
+
     for ($unitIndex = 0; $unitIndex < $unitCount; $unitIndex++) {
         $description = $request->input("descriptions.$unitIndex");
         $itemCode = $request->input("item_codes.$unitIndex");
-        $selectedServiceIds = $services[$unitIndex] ?? []; // Servicios seleccionados para este terreno
+        $selectedServiceIds = $services[$unitIndex] ?? [];
+        if (is_string($selectedServiceIds)) {
+            $selectedServiceIds = json_decode($selectedServiceIds, true) ?? [];
+        }
+
+        \Log::info('Terreno', ['unitIndex'=>$unitIndex, 'selectedServiceIds'=>$selectedServiceIds]);
 
         // Crear el proceso (terreno)
         $process = Process::create([
@@ -411,16 +321,49 @@ public function start(Request $request, $quote_id)
             'fecha_entrega' => now()->addDays($request->input('dias_procesar')),
         ]);
 
-        // Asociar los servicios seleccionados al proceso (terreno)
+        // Asociar solo los servicios de este terreno (unit_index)
         foreach ($selectedServiceIds as $quoteServiceId) {
-            $quoteService = $quote->quoteServices->find($quoteServiceId);
+            $quoteService = $quote->quoteServices->first(function($qs) use ($quoteServiceId, $unitIndex) {
+                return $qs->id == $quoteServiceId && $qs->unit_index == $unitIndex;
+            });
+            \Log::info('Asociando servicio a proceso', [
+                'process_id' => $process->process_id,
+                'unit_index' => $unitIndex,
+                'quote_service_id' => $quoteServiceId,
+                'encontrado' => $quoteService ? true : false,
+                'unit_index_encontrado' => $quoteService->unit_index ?? null,
+            ]);
             if ($quoteService) {
-                // Aquí puedes guardar la asociación entre el proceso y el servicio
-                // Por ejemplo, podrías crear una tabla intermedia `process_services`
-                \App\Models\ProcessService::create([
+                $isService = $quoteService->services_id ? true : false;
+                $spd = ServiceProcessDetail::create([
                     'process_id' => $process->process_id,
-                    'quote_service_id' => $quoteServiceId,
+                    'quote_service_id' => $quoteService->id,
+                    'type' => $isService ? 'service' : 'package',
+                    'description' => $isService ? ($quoteService->service->descripcion ?? '') : ($quoteService->servicePackage->nombre ?? ''),
+                    'status' => 'pending',
                 ]);
+                if ($isService) {
+                    \App\Models\Analysis::create([
+                        'process_id' => $process->process_id,
+                        'service_id' => $quoteService->services_id,
+                        'status' => 'pending',
+                        'cantidad' => $quoteService->cantidad,
+                        'approved' => false,
+                    ]);
+                } else {
+                    // Es un paquete: crear análisis para cada servicio incluido
+                    $includedServices = $quoteService->servicePackage ? $quoteService->servicePackage->included_services : collect();
+                    foreach ($includedServices as $service) {
+                        $serviceId = is_object($service) ? $service->services_id : $service;
+                        \App\Models\Analysis::create([
+                            'process_id' => $process->process_id,
+                            'service_id' => $serviceId,
+                            'status' => 'pending',
+                            'cantidad' => 1, // O la cantidad que corresponda
+                            'approved' => false,
+                ]);
+                    }
+                }
             }
         }
     }

@@ -28,7 +28,7 @@ class QuoteController extends Controller
             })->orWhere('quote_id', 'like', '%' . $request->nit . '%');
         }
     
-        $quotes = $query->get();
+        $quotes = $query->orderBy('created_at', 'desc')->get();
     
         return view('cotizacion.index', compact('quotes'));
     }
@@ -130,6 +130,7 @@ class QuoteController extends Controller
                             'service_packages_id' => null,
                             'cantidad' => $quantity,
                             'subtotal' => $subtotal,
+                            'unit_index' => $unitIndex,
                         ]);
 
                         Log::info('Servicio registrado:', [
@@ -155,6 +156,7 @@ class QuoteController extends Controller
                             'service_packages_id' => $package['package_id'],
                             'cantidad' => $quantity,
                             'subtotal' => $subtotal,
+                            'unit_index' => $unitIndex,
                         ]);
 
                         Log::info('Paquete registrado:', [
@@ -180,10 +182,7 @@ class QuoteController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Cotización creada exitosamente.',
-            ]);
+            return redirect()->route('cotizacion.index')->with('success', 'Cotización creada exitosamente.');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al crear cotización: ' . $e->getMessage());
@@ -306,8 +305,8 @@ class QuoteController extends Controller
     
             // Save new services
             if (!empty($validatedData['services'])) {
-                foreach ($validatedData['services'] as $index => $serviceId) {
-                    $quantity = $validatedData['quantities'][$index] ?? 0;
+                foreach ($validatedData['services'] as $unitIndex => $serviceId) {
+                    $quantity = $validatedData['quantities'][$unitIndex] ?? 0;
                     if ($serviceId && $quantity > 0) {
                         $service = Service::findOrFail($serviceId);
                         $subtotal = $service->precio * $quantity;
@@ -318,6 +317,7 @@ class QuoteController extends Controller
                             'service_packages_id' => null,
                             'cantidad' => $quantity,
                             'subtotal' => $subtotal,
+                            'unit_index' => $unitIndex,
                         ]);
                     }
                 }
@@ -325,8 +325,8 @@ class QuoteController extends Controller
     
             // Save new packages
             if (!empty($validatedData['service_packages'])) {
-                foreach ($validatedData['service_packages'] as $index => $packageId) {
-                    $quantity = $validatedData['package_quantities'][$index] ?? 0;
+                foreach ($validatedData['service_packages'] as $unitIndex => $packageId) {
+                    $quantity = $validatedData['package_quantities'][$unitIndex] ?? 0;
                     if ($packageId && $quantity > 0) {
                         $package = ServicePackage::findOrFail($packageId);
                         $subtotal = $package->precio * $quantity;
@@ -337,6 +337,7 @@ class QuoteController extends Controller
                             'service_packages_id' => $packageId,
                             'cantidad' => $quantity,
                             'subtotal' => $subtotal,
+                            'unit_index' => $unitIndex,
                         ]);
                     }
                 }
@@ -433,8 +434,26 @@ public function comprobante($id)
 
 public function showUploadForm($quote_id)
 {
-    $quote = Quote::findOrFail($quote_id);
-    return view('cotizacion.upload', compact('quote'));
+    $quote = Quote::with(['quoteServices', 'processes'])->findOrFail($quote_id);
+    // Calcular el número de unidades (terrenos) a partir de los servicios agrupados por unidad
+    // Si la cotización fue creada con el array 'units', cada grupo de servicios corresponde a una unidad
+    // Aquí asumimos que cada QuoteService tiene un campo 'unit_index' o similar, si no, agrupamos por cantidad de unidades
+    // Si no hay agrupación, simplemente contamos los grupos distintos de servicios asignados
+    // Por compatibilidad, si no se puede determinar, usamos la cantidad de unidades según la estructura de la cotización
+    $unitCount = 1;
+    $unitIndexes = [];
+    foreach ($quote->quoteServices as $qs) {
+        if (isset($qs->unit_index)) {
+            $unitIndexes[] = $qs->unit_index;
+        }
+    }
+    if (count($unitIndexes) > 0) {
+        $unitCount = count(array_unique($unitIndexes));
+    } else {
+        // fallback: si no hay unit_index, asumimos que cada servicio corresponde a una unidad
+        $unitCount = $quote->quoteServices->count() > 0 ? $quote->quoteServices->count() : 1;
+    }
+    return view('cotizacion.upload', compact('quote', 'unitCount'));
 }
 
 public function upload(Request $request, $quote_id)

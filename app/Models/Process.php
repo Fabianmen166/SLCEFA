@@ -49,16 +49,19 @@ class Process extends Model
                     });
     }
 
-
-
-
+    public function pendingConductivityAnalyses()
+    {
+        return $this->analyses()
+            ->where('status', 'pending')
+            ->whereHas('service', function ($query) {
+                $query->where('descripcion', 'like', '%conductividad%');
+            });
+    }
 
     public function responsable()
     {
         return $this->belongsTo(User::class, 'responsable_recepcion', 'user_id');
     }
-
-
 
     public function serviceProcessDetails()
     {

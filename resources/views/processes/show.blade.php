@@ -62,155 +62,41 @@
             </div>
         </div>
 
-        <!-- Ítems de la Cotización (Servicios y Paquetes) -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Ítems de la Cotización</h3>
-            </div>
-            <div class="card-body">
-                @if($quoteItems->isEmpty())
-                    <p>No hay ítems asociados a esta cotización. Asegúrate de que la cotización tenga servicios o paquetes asignados.</p>
-                @else
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Tipo</th>
-                                <th>Nombre</th>
-                                <th>Precio</th>
-                                <th>Acreditado</th>
-                                <th>Cantidad</th>
-                                <th>Subtotal</th>
-                                <th>Detalles</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($quoteItems as $item)
-                                <tr>
-                                    <td>{{ $item->type === 'service' ? 'Servicio' : 'Paquete de Servicios' }}</td>
-                                    <td>{{ $item->name }}</td>
-                                    <td>{{ number_format($item->price, 2) }}</td>
-                                    <td>{{ $item->accredited ? 'Sí' : 'No' }}</td>
-                                    <td>{{ $item->quantity ?? '-' }}</td>
-                                    <td>{{ $item->subtotal ? number_format($item->subtotal, 2) : '-' }}</td>
-                                    <td>
-                                        @if($item->type === 'package')
-                                            <p><strong>Servicios en el Paquete:</strong></p>
-                                            <ul>
-                                                @foreach($item->services as $service)
-                                                    <li>
-                                                        {{ $service['name'] }} (Precio: {{ number_format($service['price'], 2) }})
-                                                        - Acreditado: {{ $service['accredited'] ? 'Sí' : 'No' }}
-                                                    </li>
-                                                @endforeach
-                                            </ul>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @endif
-            </div>
-        </div>
-
         <!-- Servicios a Realizar -->
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">Servicios a Realizar</h3>
             </div>
             <div class="card-body">
-                @if($servicesToDo->isEmpty())
+                @php
+                    $processServices = $process->serviceProcessDetails ?? collect();
+                @endphp
+                @if($processServices->isEmpty())
                     <p>No hay servicios asociados a este proceso.</p>
                 @else
                     <table class="table table-bordered">
                         <thead>
                             <tr>
-                                <th>Nombre</th>
-                                <th>Paquete (si aplica)</th>
-                                <th>Precio</th>
-                                <th>Acreditado</th>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
                                 <th>Cantidad</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($servicesToDo as $service)
-                                <tr>
-                                    <td>{{ $service->name }}</td>
-                                    <td>{{ $service->package_name ?? '-' }}</td>
-                                    <td>{{ number_format($service->price, 2) }}</td>
-                                    <td>{{ $service->accredited ? 'Sí' : 'No' }}</td>
-                                    <td>{{ $service->quantity ?? '-' }}</td>
+                            @foreach($processServices as $ps)
+                                @if($ps->quoteService && $ps->quoteService->services_id && $ps->quoteService->service)
+                                    <tr>
+                                        <td>Servicio</td>
+                                        <td>{{ $ps->quoteService->service->descripcion ?? 'Servicio no encontrado' }}</td>
+                                        <td>{{ $ps->quoteService->cantidad }}</td>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                                @elseif($ps->quoteService && $ps->quoteService->service_packages_id && $ps->quoteService->servicePackage)
+                                    <tr>
+                                        <td>Paquete</td>
+                                        <td>{{ $ps->quoteService->servicePackage->nombre ?? 'Paquete no encontrado' }}</td>
+                                        <td>{{ $ps->quoteService->cantidad }}</td>
+                                </tr>
                 @endif
-            </div>
-        </div>
-
-        <!-- Servicios Pendientes -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Servicios Pendientes</h3>
-            </div>
-            <div class="card-body">
-                @if($pendingServices->isEmpty())
-                    <p>No hay servicios pendientes.</p>
-                @else
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Paquete (si aplica)</th>
-                                <th>Precio</th>
-                                <th>Acreditado</th>
-                                <th>Cantidad</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($pendingServices as $service)
-                                <tr>
-                                    <td>{{ $service->name }}</td>
-                                    <td>{{ $service->package_name ?? '-' }}</td>
-                                    <td>{{ number_format($service->price, 2) }}</td>
-                                    <td>{{ $service->accredited ? 'Sí' : 'No' }}</td>
-                                    <td>{{ $service->quantity ?? '-' }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @endif
-            </div>
-        </div>
-
-        <!-- Servicios Realizados -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Servicios Realizados</h3>
-            </div>
-            <div class="card-body">
-                @if($completedServices->isEmpty())
-                    <p>No hay servicios realizados.</p>
-                @else
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Paquete (si aplica)</th>
-                                <th>Precio</th>
-                                <th>Acreditado</th>
-                                <th>Cantidad</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($completedServices as $service)
-                                <tr>
-                                    <td>{{ $service->name }}</td>
-                                    <td>{{ $service->package_name ?? '-' }}</td>
-                                    <td>{{ number_format($service->price, 2) }}</td>
-                                    <td>{{ $service->accredited ? 'Sí' : 'No' }}</td>
-                                    <td>{{ $service->quantity ?? '-' }}</td>
-                                </tr>
                             @endforeach
                         </tbody>
                     </table>

@@ -45,14 +45,12 @@
                                     <td>{{ $process->quote->quote_id }}</td>
                                     <td>
                                         <ul>
-                                            @foreach($process->quote->quoteServices as $quoteService)
-                                                <li>
-                                                    @if($quoteService->service)
-                                                        {{ $quoteService->service->descripcion }} (Cantidad: {{ $quoteService->cantidad }})
-                                                    @elseif($quoteService->servicePackage)
-                                                        {{ $quoteService->servicePackage->nombre }} (Cantidad: {{ $quoteService->cantidad }})
-                                                    @endif
-                                                </li>
+                                            @foreach($process->serviceProcessDetails as $spd)
+                                                @if($spd->quoteService && $spd->quoteService->service)
+                                                    <li>{{ $spd->quoteService->service->descripcion }} (Cantidad: {{ $spd->quoteService->cantidad }})</li>
+                                                @elseif($spd->quoteService && $spd->quoteService->servicePackage)
+                                                    <li>{{ $spd->quoteService->servicePackage->nombre }} (Cantidad: {{ $spd->quoteService->cantidad }})</li>
+                                                @endif
                                             @endforeach
                                         </ul>
                                     </td>

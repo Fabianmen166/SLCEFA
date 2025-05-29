@@ -16,57 +16,16 @@ class ConductivityAnalysisController extends Controller
 
 public function index()
 {
-    $conductivityAnalyses = ConductivityAnalysis::with(['analysis.process', 'analysis.service', 'user'])
-        ->where('user_id', Auth::id())
-        ->where('review_status', 'pending')
-        ->whereHas('analysis', function ($query) {
-            $query->where('approved', false);
+    // Buscar todos los análisis pendientes de conductividad que NO tienen ConductivityAnalysis asociado
+    $pendingConductivityAnalyses = Analysis::with(['process', 'service'])
+        ->where('status', 'pending')
+        ->whereHas('service', function ($query) {
+            $query->where('descripcion', 'like', '%conductividad%');
         })
-        ->get();
+        ->whereDoesntHave('conductivityAnalysis')
+        ->paginate(10);
 
-    // Depuración: Inspeccionemos los datos
-    if ($conductivityAnalyses->isEmpty()) {
-        \Log::info('No se encontraron análisis de conductividad pendientes para el usuario ' . Auth::id());
-    } else {
-        \Log::info('Análisis encontrados: ' . $conductivityAnalyses->count());
-    }
-
-    $mappedAnalyses = $conductivityAnalyses->map(function ($conductivityAnalysis) {
-        $analysis = $conductivityAnalysis->analysis;
-        $conductivityAnalysis->analysis_date = $conductivityAnalysis->fecha_analisis;
-        $conductivityAnalysis->details = [
-            'internal_code' => $conductivityAnalysis->consecutivo_no,
-            'analyst_name' => $conductivityAnalysis->user ? $conductivityAnalysis->user->name : 'N/A',
-            'controles_analiticos' => $conductivityAnalysis->controles_analiticos ?? [],
-            'precision_analitica' => $conductivityAnalysis->precision_analitica ?? [],
-            'veracidad_analitica' => $conductivityAnalysis->veracidad_analitica ?? [],
-            'items_ensayo' => $conductivityAnalysis->items_ensayo ?? [],
-            'type' => 'conductivity',
-        ];
-        $conductivityAnalysis->description = $analysis->service ? $analysis->service->description : 'N/A';
-        $conductivityAnalysis->review_status = $conductivityAnalysis->review_status ?? 'pending';
-        $conductivityAnalysis->review_date = $conductivityAnalysis->review_date;
-        $conductivityAnalysis->reviewed_by = $conductivityAnalysis->reviewed_by;
-        $conductivityAnalysis->reviewer_role = $conductivityAnalysis->reviewer_role;
-        $conductivityAnalysis->review_observations = $conductivityAnalysis->review_observations;
-        $conductivityAnalysis->result = $this->extractResult($conductivityAnalysis);
-        $conductivityAnalysis->process_item_code = $analysis->process->item_code ?? 'N/A';
-        $conductivityAnalysis->process_id = $analysis->process_id;
-        return $conductivityAnalysis;
-    });
-
-    $perPage = 10;
-    $page = request()->get('page', 1);
-    $offset = ($page - 1) * $perPage;
-    $paginatedAnalyses = new LengthAwarePaginator(
-        $mappedAnalyses->slice($offset, $perPage),
-        $mappedAnalyses->count(),
-        $perPage,
-        $page,
-        ['path' => route('conductivity.index')]
-    );
-
-    return view('conductivity.index', ['analyses' => $paginatedAnalyses]);
+    return view('conductivity.index', ['analyses' => $pendingConductivityAnalyses]);
 }
 
     private function extractResult($conductivityAnalysis)

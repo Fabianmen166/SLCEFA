@@ -36,9 +36,6 @@
                             <tr>
                                 <th>Proceso</th>
                                 <th>Servicio</th>
-                                <th>Fecha del Análisis</th>
-                                <th>Código Interno</th>
-                                <th>Resultado</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
                             </tr>
@@ -46,11 +43,8 @@
                         <tbody>
                             @forelse ($analyses as $analysis)
                                 <tr>
-                                    <td>{{ $analysis->process_item_code }}</td>
-                                    <td>{{ $analysis->description }}</td>
-                                    <td>{{ $analysis->analysis_date ?? 'N/A' }}</td>
-                                    <td>{{ $analysis->details['internal_code'] }}</td>
-                                    <td>{{ $analysis->result }}</td>
+                                    <td>{{ $analysis->process->item_code ?? '-' }}</td>
+                                    <td>{{ $analysis->service->descripcion ?? '-' }}</td>
                                     <td>
                                         <span class="badge badge-warning">Pendiente</span>
                                     </td>

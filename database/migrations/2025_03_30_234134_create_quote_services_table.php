@@ -13,6 +13,7 @@ class CreateQuoteServicesTable extends Migration
             $table->string('quote_id'); // ID de la cotización
             $table->unsignedBigInteger('services_id')->nullable(); // ID del servicio (opcional)
             $table->unsignedBigInteger('service_packages_id')->nullable(); // ID del paquete de servicios (opcional)
+            $table->integer('unit_index')->nullable(); // Índice de la unidad/terreno
             $table->integer('cantidad')->nullable(); // Cantidad
             $table->decimal('subtotal', 10, 2)->nullable(); // Subtotal
             $table->timestamps(); // created_at y updated_at

@@ -54,41 +54,50 @@
                             </thead>
                             <tbody>
                                 @foreach ($processes as $process)
+                                    @php
+                                        $pendingAnalyses = $process->analyses->where('status', 'pending');
+                                        $completedAnalyses = $process->analyses->where('status', 'completed');
+                                        $rowspan = max($pendingAnalyses->count(), 1);
+                                    @endphp
+                                    @if($pendingAnalyses->isEmpty())
                                     <tr>
                                         <td>{{ $process->process_id }}</td>
-                                        <td>
-                                            @php
-                                                $pendingAnalyses = $process->analyses->where('status', 'pending');
-                                            @endphp
-                                            @if ($pendingAnalyses->isEmpty())
-                                                <span class="text-gray-500">Ningún servicio pendiente</span>
+                                            <td><span class="text-gray-500">Ningún servicio pendiente</span></td>
+                                            <td>
+                                                @if ($completedAnalyses->isEmpty())
+                                                    <span class="text-gray-500">Ningún servicio realizado</span>
                                             @else
                                                 <ul class="list-unstyled">
-                                                    @foreach ($pendingAnalyses as $analysis)
-                                                        <li>
-                                                            {{ $analysis->service->descripcion }} (Cantidad: {{ $analysis->cantidad ?? 'No especificada' }})
-                                                        </li>
+                                                        @foreach ($completedAnalyses as $analysis)
+                                                            <li>{{ $analysis->service->descripcion }} (Cantidad: {{ $analysis->cantidad ?? 'No especificada' }})</li>
                                                     @endforeach
                                                 </ul>
                                             @endif
                                         </td>
-                                        <td>
-                                            @php
-                                                $completedAnalyses = $process->analyses->where('status', 'completed');
-                                            @endphp
+                                        </tr>
+                                    @else
+                                        @foreach ($pendingAnalyses as $i => $analysis)
+                                            <tr>
+                                                @if($i === 0)
+                                                    <td rowspan="{{ $rowspan }}">{{ $process->process_id }}</td>
+                                                @endif
+                                                <td>{{ $analysis->service->descripcion }} (Cantidad: {{ $analysis->cantidad ?? 'No especificada' }})</td>
+                                                @if($i === 0)
+                                                    <td rowspan="{{ $rowspan }}">
                                             @if ($completedAnalyses->isEmpty())
                                                 <span class="text-gray-500">Ningún servicio realizado</span>
                                             @else
                                                 <ul class="list-unstyled">
-                                                    @foreach ($completedAnalyses as $analysis)
-                                                        <li>
-                                                            {{ $analysis->service->descripcion }} (Cantidad: {{ $analysis->cantidad ?? 'No especificada' }})
-                                                        </li>
+                                                                @foreach ($completedAnalyses as $cAnalysis)
+                                                                    <li>{{ $cAnalysis->service->descripcion }} (Cantidad: {{ $cAnalysis->cantidad ?? 'No especificada' }})</li>
                                                     @endforeach
                                                 </ul>
                                             @endif
                                         </td>
+                                                @endif
                                     </tr>
+                                        @endforeach
+                                    @endif
                                 @endforeach
                             </tbody>
                         </table>
@@ -96,88 +105,68 @@
                 </div>
             </div>
 
-            <!-- Batch pH Analysis Section (Unchanged) -->
-            <div class="card">
+            <!-- Returned Analyses Section -->
+            <div class="card mt-4">
                 <div class="card-header">
-                    <h3 class="card-title">Análisis de pH Pendientes (Procesar en Lotes)</h3>
+                    <h3 class="card-title">Análisis de pH Devueltos</h3>
                 </div>
                 <div class="card-body">
                     @php
-                        $pendingPhAnalyses = [];
+                        $returnedPhAnalyses = collect();
                         foreach ($processes as $process) {
-                            $phAnalyses = $process->pendingPhAnalyses()->get();
-                            foreach ($phAnalyses as $analysis) {
-                                $pendingPhAnalyses[] = [
-                                    'process_id' => $process->process_id,
-                                    'service_id' => $analysis->service_id,
-                                    'analysis_id' => $analysis->id,
-                                    'descripcion' => $analysis->service->descripcion,
-                                    'cantidad' => $analysis->cantidad,
-                                ];
+                            foreach ($process->analyses as $analysis) {
+                                if (
+                                    ($analysis->phAnalysis && ($analysis->phAnalysis->review_status === 'rejected' || $analysis->approved === 0))
+                                ) {
+                                    $returnedPhAnalyses->push($analysis);
+                                }
                             }
                         }
                     @endphp
-
-                    @if (empty($pendingPhAnalyses))
-                        <p>No hay análisis de pH pendientes.</p>
+                    @if ($returnedPhAnalyses->isEmpty())
+                        <p>No hay análisis devueltos para mostrar.</p>
                     @else
-                        <form action="{{ route('ph_analysis.batch_ph_analysis') }}" method="POST">
-                            @csrf
-                            <div class="alert alert-info">
-                                <p><strong>Instrucciones:</strong> Seleccione hasta 20 análisis de pH para procesar en un solo lote. Después de 20 análisis, se deben repetir los controles analíticos.</p>
-                            </div>
                             <table class="table table-bordered table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Seleccionar</th>
                                         <th>Proceso</th>
                                         <th>Servicio</th>
-                                        <th>Cantidad</th>
+                                    <th>Fecha de Creación</th>
+                                    <th>Estado de Revisión</th>
+                                    <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($pendingPhAnalyses as $index => $phAnalysis)
-                                        <tr>
-                                            <td>
-                                                <input type="checkbox" name="analyses[]" value="{{ $phAnalysis['analysis_id'] }}" class="ph-checkbox">
+                                @foreach ($returnedPhAnalyses as $analysis)
+                                    <tr>
+                                        <td>{{ $analysis->process ? $analysis->process->process_id : 'No asignado' }}</td>
+                                        <td>{{ $analysis->service ? $analysis->service->descripcion : 'Sin servicio' }}</td>
+                                        <td>{{ $analysis->created_at }}</td>
+                                        <td>
+                                            <span class="badge badge-danger">Rechazado</span>
+                                        </td>
+                                        <td>
+                                            @if ($analysis->process)
+                                                <a href="{{ route('ph_analysis.edit_analysis', $analysis->id) }}" class="btn btn-warning btn-sm">
+                                                    Corregir
+                                                </a>
+                                                <a href="{{ route('ph_analysis.download_report', $analysis->id) }}" class="btn btn-info btn-sm">
+                                                    Descargar Reporte
+                                                </a>
+                                            @else
+                                                <span class="text-muted">Acciones no disponibles</span>
+                                            @endif
                                             </td>
-                                            <td>{{ $phAnalysis['process_id'] }}</td>
-                                            <td>{{ $phAnalysis['descripcion'] }}</td>
-                                            <td>{{ $phAnalysis['cantidad'] }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
                             </table>
-                            <button type="submit" class="btn btn-primary" id="process-batch-btn" disabled>
-                                Procesar Lote de Análisis de pH
-                            </button>
-                        </form>
-
-                        <script>
-                            document.addEventListener('DOMContentLoaded', function () {
-                                const checkboxes = document.querySelectorAll('.ph-checkbox');
-                                const submitButton = document.getElementById('process-batch-btn');
-
-                                function updateButtonState() {
-                                    const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
-                                    if (checkedCount > 0 && checkedCount <= 20) {
-                                        submitButton.disabled = false;
-                                    } else {
-                                        submitButton.disabled = true;
-                                    }
-
-                                    if (checkedCount > 20) {
-                                        alert('No puede seleccionar más de 20 análisis de pH a la vez.');
-                                        Array.from(checkboxes).filter(cb => cb.checked).slice(20).forEach(cb => cb.checked = false);
-                                    }
-                                }
-
-                                checkboxes.forEach(cb => cb.addEventListener('change', updateButtonState));
-                            });
-                        </script>
                     @endif
                 </div>
             </div>
+
+            <!-- Batch pH Analysis Section (Unchanged) -->
+            {{-- Sección eliminada: Análisis de pH Pendientes (Procesar en Lotes) --}}
         </div>
     </section>
 </div>

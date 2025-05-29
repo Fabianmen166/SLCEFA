@@ -71,51 +71,13 @@
                 </div>
             </div>
 
-            <!-- Returned Analyses Section -->
-            <div class="card">
+            <!-- Batch pH Analysis Section -->
+            <div class="card mt-4">
                 <div class="card-header">
-                    <h3 class="card-title">Análisis Devueltos</h3>
+                    <h3 class="card-title">Análisis de pH Pendientes (Procesar en Lotes)</h3>
                 </div>
                 <div class="card-body">
-                    @if ($phAnalyses->isEmpty())
-                        <p>No hay análisis devueltos para mostrar.</p>
-                    @else
-                        <table class="table table-bordered table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Proceso</th>
-                                    <th>Servicio</th>
-                                    <th>Fecha de Creación</th>
-                                    <th>Estado de Revisión</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($phAnalyses as $analysis)
-                                    <tr>
-                                        <td>{{ $analysis->process ? $analysis->process->process_id : 'No asignado' }}</td>
-                                        <td>{{ $analysis->service ? $analysis->service->descripcion : 'Sin servicio' }}</td>
-                                        <td>{{ $analysis->created_at }}</td>
-                                        <td>
-                                            <span class="badge badge-danger">Rechazado</span>
-                                        </td>
-                                        <td>
-                                            @if ($analysis->process)
-                                                <a href="{{ route('ph_analysis.edit_analysis', $analysis->id) }}" class="btn btn-warning btn-sm">
-                                                    Corregir
-                                                </a>
-                                                <a href="{{ route('ph_analysis.download_report', $analysis->id) }}" class="btn btn-info btn-sm">
-                                                    Descargar Reporte
-                                                </a>
-                                            @else
-                                                <span class="text-muted">Acciones no disponibles</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    @endif
+                    @include('partials.pending_ph_batch')
                 </div>
             </div>
         </div>

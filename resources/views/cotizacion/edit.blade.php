@@ -66,21 +66,19 @@
                             <h5>Unidades (Terrenos)</h5>
                             <div id="unit-container">
                                 @php
-                                    // Agrupar servicios/paquetes por unidad (proceso)
-                                    $processes = $quote->processes;
+                                    // Agrupar servicios/paquetes por unidad usando unit_index
                                     $quoteServices = $quote->quoteServices;
                                     $servicesPerUnit = [];
-                                    $unitCount = $processes->count();
-                                    $servicesPerUnitCount = $unitCount > 0 ? ceil($quoteServices->count() / $unitCount) : 0;
-
-                                    foreach ($processes as $unitIndex => $process) {
-                                        $servicesPerUnit[$unitIndex] = $quoteServices->slice($unitIndex * $servicesPerUnitCount, $servicesPerUnitCount);
+                                    foreach ($quoteServices as $qs) {
+                                        $unitIdx = $qs->unit_index ?? 0;
+                                        $servicesPerUnit[$unitIdx][] = $qs;
                                     }
+                                    $unitCount = count($servicesPerUnit);
                                 @endphp
 
-                                @foreach ($processes as $unitIndex => $process)
+                                @foreach (range(0, $unitCount - 1) as $unitIndex)
                                     <div class="unit-row mb-4 border p-3" data-index="{{ $unitIndex }}">
-                                        <h6>Unidad {{ $unitIndex + 1 }} ({{ $process->item_code }})</h6>
+                                        <h6>Unidad {{ $unitIndex + 1 }}</h6>
 
                                         <!-- Servicios de la Unidad -->
                                         <h6>Servicios</h6>
@@ -256,7 +254,7 @@
                 const unitContainer = document.getElementById('unit-container');
                 const addUnitBtn = document.getElementById('add-unit-btn');
                 const totalDisplay = document.getElementById('total-amount');
-                let unitIndex = {{ $processes->count() }};
+                let unitIndex = {{ $unitCount }};
                 let discountPercentage = 0;
 
                 const servicesData = JSON.parse(document.getElementById('services-data').dataset.services);

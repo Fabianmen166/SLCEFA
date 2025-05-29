@@ -45,8 +45,17 @@
                             </div>
                         </div>
 
-                        <h6 class="mt-4">Servicios y Paquetes</h6>
-                        @if ($quote->quoteServices->isNotEmpty())
+                        <h6 class="mt-4">Servicios y Paquetes por Terreno</h6>
+                        @php
+                            $servicesPerUnit = [];
+                            foreach ($quote->quoteServices as $qs) {
+                                $unitIdx = $qs->unit_index ?? 0;
+                                $servicesPerUnit[$unitIdx][] = $qs;
+                            }
+                        @endphp
+                        @if (!empty($servicesPerUnit))
+                            @foreach ($servicesPerUnit as $unitIndex => $unitServices)
+                                <h6 class="mt-3">Terreno {{ $unitIndex + 1 }}</h6>
                             <table class="table table-bordered">
                                 <thead>
                                     <tr>
@@ -57,7 +66,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($quote->quoteServices as $quoteService)
+                                        @foreach ($unitServices as $quoteService)
                                         @if ($quoteService->services_id && $quoteService->service)
                                             <tr>
                                                 <td>Servicio</td>
@@ -76,7 +85,6 @@
                                                 @foreach ($quoteService->servicePackage->included_services as $includedService)
                                                     @if (is_array($includedService) || is_object($includedService))
                                                         <?php
-                                                            // Extraer solo la descripción si es un objeto o array
                                                             $description = is_object($includedService) ? $includedService->description ?? $includedService->descripcion ?? 'Descripción no disponible' : $includedService;
                                                         ?>
                                                         <tr class="table-light">
@@ -99,11 +107,10 @@
                                     @endforeach
                                 </tbody>
                             </table>
+                            @endforeach
                         @else
                             <p>Sin servicios ni paquetes.</p>
                         @endif
-
-
 
                         <div class="mt-4">
                             <a href="{{ route('cotizacion.comprobante', $quote->quote_id) }}" class="btn btn-primary">Descargar PDF</a>

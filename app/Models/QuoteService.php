@@ -8,7 +8,7 @@ class QuoteService extends Model
 {
     protected $table = 'quote_services';
     protected $primaryKey = 'quote_services_id';
-    protected $fillable = ['quote_id', 'services_id', 'service_packages_id', 'cantidad', 'subtotal'];
+    protected $fillable = ['quote_id', 'services_id', 'service_packages_id', 'cantidad', 'subtotal', 'unit_index'];
 
     public function service()
     {

@@ -41,30 +41,19 @@
                 <h3>Gestionar Procesos por Terreno</h3>
 
                 @php
-                    // Determinar el número de terrenos dinámicamente
-                    $unitCount = $quote->number_of_units ?? 2; // Ajusta según el número deseado de terrenos
+                    // Usar el unitCount pasado desde el controlador
+                    $unitCount = $unitCount ?? 1;
                     if ($unitCount < 1) $unitCount = 1;
 
                     // Obtener procesos existentes
                     $existingProcesses = $quote->processes->keyBy('descripcion')->all();
 
-                    // Obtener todos los servicios de la cotización
+                    // Agrupar los servicios por unit_index
                     $quoteServices = $quote->quoteServices ?? collect();
                     $servicesPerUnit = [];
-                    $servicesCount = $quoteServices->count();
-
-                    // Distribuir los servicios entre los terrenos
-                    if ($servicesCount > 0 && $unitCount > 0) {
-                        $servicesPerUnitCount = ceil($servicesCount / $unitCount);
-                        foreach ($quoteServices as $index => $quoteService) {
-                            $unitIndex = floor($index / $servicesPerUnitCount);
-                            if ($unitIndex >= $unitCount) {
-                                $unitIndex = $unitCount - 1;
-                            }
-                            $servicesPerUnit[$unitIndex][] = $quoteService;
-                        }
-                    } else {
-                        $servicesPerUnit[0] = $quoteServices->all();
+                    foreach ($quoteServices as $quoteService) {
+                        $unitIdx = $quoteService->unit_index ?? 0;
+                        $servicesPerUnit[$unitIdx][] = $quoteService;
                     }
                 @endphp
 

@@ -11,7 +11,7 @@ class ServiceProcessDetail extends Model
 
     protected $fillable = [
         'process_id',
-        'services_id',
+        'quote_service_id',
         'type',
         'description',
         'result',
@@ -27,8 +27,8 @@ class ServiceProcessDetail extends Model
         return $this->belongsTo(Process::class, 'process_id', 'process_id');
     }
 
-    public function service()
+    public function quoteService()
     {
-        return $this->belongsTo(Service::class, 'services_id', 'services_id');
+        return $this->belongsTo(QuoteService::class, 'quote_service_id', 'id');
     }
 }
