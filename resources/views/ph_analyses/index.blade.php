@@ -50,22 +50,36 @@
                             <thead>
                                 <tr>
                                     <th>Proceso</th>
-                                    <th>Cantidad de Análisis Pendientes</th>
+                                    <th>Cliente</th>
+                                    <th>Servicio</th>
+                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach ($processes as $process)
-                                    <tr>
-                                        <td>{{ $process->process_id }}</td>
-                                        <td>{{ $process->analyses->where('status', 'pending')->count() }}</td>
-                                    </tr>
+                                    @foreach($process->analyses as $analysis)
+                                        <tr>
+                                            <td>{{ $process->process_id }}</td>
+                                            <td>{{ $process->customer->nombre ?? 'N/A' }}</td>
+                                            <td>{{ $analysis->service->descripcion ?? 'N/A' }}</td>
+                                            <td>
+                                                <a href="{{ route('ph_analysis.ph_analysis', ['processId' => $process->process_id, 'serviceId' => $analysis->service_id]) }}" 
+                                                   class="btn btn-primary btn-sm">
+                                                    Realizar Análisis
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    @endforeach
                                 @endforeach
                             </tbody>
                         </table>
                         <div class="mt-3">
-                            <a href="{{ route('ph_analysis.process_all') }}" class="btn btn-primary">
-                                Iniciar Proceso
-                            </a>
+                            <form action="{{ route('ph_analysis.process_all') }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-primary">
+                                    Procesar Todos los Análisis
+                                </button>
+                            </form>
                         </div>
                     @endif
                 </div>

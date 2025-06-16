@@ -19,37 +19,43 @@
     <link rel="stylesheet" href="{{ asset('AdminLTE-3.2.0/plugins/overlayScrollbars/css/OverlayScrollbars.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
     <div class="wrapper">
-        <!-- Navbar -->
-        <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-            <!-- Left navbar links -->
-            <ul class="navbar-nav">
-                <li class="nav-item">
-                    <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
-                </li>
-            </ul>
+        <!-- Remove existing Navbar and add a simplified one -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+            <div class="container-fluid">
+                <!-- Logo / Brand (optional, can be removed if not needed) -->
+                <a class="navbar-brand" href="{{ route('personal_tecnico.dashboard') }}">
+                    <img src="{{ asset('images/Logo.png') }}" alt="Logo" height="30">
+                </a>
 
-            <!-- Right navbar links -->
-            <ul class="navbar-nav ml-auto">
-                <li class="nav-item dropdown">
-                    <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        {{ Auth::user()->name }}
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                        <a class="dropdown-item" href="{{ route('logout') }}"
-                           onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                            {{ __('Cerrar Sesión') }}
-                        </a>
-                        <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                            @csrf
-                        </form>
-                    </div>
-                </li>
-            </ul>
+                <!-- Toggler for mobile (if needed for responsiveness) -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto"> <!-- Using ms-auto for Bootstrap 5 right alignment -->
+                        <li class="nav-item dropdown">
+                            <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                {{ Auth::user()->name }}
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <a class="dropdown-item" href="{{ route('logout') }}"
+                                   onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                    {{ __('Cerrar Sesión') }}
+                                </a>
+                                <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                                    @csrf
+                                </form>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </nav>
-        <!-- /.navbar -->
 
         <!-- Main Sidebar Container -->
         <aside class="main-sidebar sidebar-success-green elevation-4">
@@ -57,6 +63,7 @@
                 <!-- Sidebar Menu -->
                 <nav class="mt-2">
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                        <!-- Eliminar <br> tags si ya no son necesarios con el nuevo navbar -->
                         <br><br><br><br>
 
                         <!-- Dashboard -->
@@ -94,6 +101,23 @@
                             </li>
                         @endif
 
+                        @if (Auth::user()->role === 'personal_tecnico')
+                            <li class="nav-item">
+                                <a href="{{ route('cation_exchange_analysis.index') }}" class="nav-link text-success">
+                                    <i class="nav-icon fas fa-flask"></i>
+                                    <p>Intercambio Catiónico</p>
+                                </a>
+                            </li>
+                        @endif
+
+                        @if (Auth::user()->role === 'personal_tecnico')
+                            <li class="nav-item">
+                                <a href="{{ route('phosphorus_analysis.index') }}" class="nav-link text-success">
+                                    <i class="nav-icon fas fa-flask"></i>
+                                    <p>Fósforo</p>
+                                </a>
+                            </li>
+                        @endif
 
                     </ul>
                 </nav>
@@ -107,12 +131,6 @@
             @yield('contenido')
         </div>
         <!-- /.content-wrapper -->
-
-        <!-- Control Sidebar -->
-        <aside class="control-sidebar control-sidebar-dark">
-            <!-- Control sidebar content goes here -->
-        </aside>
-        <!-- /.control-sidebar -->
     </div>
     <!-- ./wrapper -->
 
@@ -130,7 +148,8 @@
     <script src="{{ asset('AdminLTE-3.2.0/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js') }}"></script>
     <!-- AdminLTE App -->
     <script src="{{ asset('AdminLTE-3.2.0/dist/js/adminlte.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Include additional scripts from child views -->
-    @yield('scripts')
+    @stack('scripts')
 </body>
 </html>

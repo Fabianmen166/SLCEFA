@@ -207,113 +207,68 @@ class PhAnalysisController extends Controller
  * @param \Illuminate\Http\Request $request
  * @return \Illuminate\Http\RedirectResponse
  */
-public function storePhAnalysis(Request $request)
+public function storePhAnalysis(Request $request, $processId, $serviceId)
 {
-    $request->validate([
-        'consecutivo_no' => 'required|string|max:255',
-        'fecha_analisis' => 'required|date',
-        'codigo_probeta' => 'required|string|max:255',
-        'codigo_equipo' => 'required|string|max:255',
-        'serial_electrodo' => 'required|string|max:255',
-        'serial_sonda_temperatura' => 'required|string|max:255',
-        'controles_analiticos' => 'required|array|min:1',
-        'controles_analiticos.*.lote' => 'required_with:controles_analiticos.*.valor_leido,controles_analiticos.*.valor_esperado|string|nullable',
-        'controles_analiticos.*.valor_leido' => 'required_with:controles_analiticos.*.lote|numeric|nullable',
-        'controles_analiticos.*.valor_esperado' => 'required_with:controles_analiticos.*.lote|numeric|nullable',
-        'precision_analitica' => 'required|array',
-        'precision_analitica.duplicado_a.valor_leido' => 'required|numeric',
-        'precision_analitica.duplicado_b.valor_leido' => 'required|numeric',
-        'items_ensayo' => 'required|array|min:1',
-        'items_ensayo.*.identificacion' => 'required|string',
-        'items_ensayo.*.peso' => 'required|numeric',
-        'items_ensayo.*.volumen_agua' => 'required|numeric',
-        'items_ensayo.*.temperatura' => 'required|numeric',
-        'items_ensayo.*.valor_leido' => 'required|numeric',
-        'observaciones' => 'nullable|string',
-        'analyses' => 'required|array|min:1',
-        'analyses.*.analysis_id' => 'required|exists:analyses,id',
-    ]);
-
     try {
-        // Validar controles analíticos (al menos uno debe estar completo y ser aceptable)
-        $controles = $request->controles_analiticos;
-        $completedControls = array_filter($controles, function ($control) {
-            return !empty($control['lote']) && !empty($control['valor_leido']) && !empty($control['valor_esperado']);
-        });
-
-        if (empty($completedControls)) {
-            return back()->with('error', 'Debe completar al menos un control analítico.')->withInput();
-        }
-
-        foreach ($completedControls as &$control) {
-            $valorLeido = floatval($control['valor_leido']);
-            $valorEsperado = floatval($control['valor_esperado']);
-            $control['error'] = ($valorEsperado != 0) ? abs(($valorLeido - $valorEsperado) / $valorEsperado) * 100 : 0;
-            $control['aceptabilidad'] = ($control['error'] <= 5) ? 'Aceptable' : 'No aceptable';
-            if ($control['aceptabilidad'] === 'No aceptable') {
-                return back()->with('error', 'Uno o más controles analíticos no son aceptables (% Error > 5%).')->withInput();
-            }
-        }
-
-        // Calcular precisión analítica
-        $precision = $request->precision_analitica;
-        $duplicadoA = floatval($precision['duplicado_a']['valor_leido']);
-        $duplicadoB = floatval($precision['duplicado_b']['valor_leido']);
-        $precision['promedio'] = ($duplicadoA + $duplicadoB) / 2;
-        $precision['diferencia'] = abs($duplicadoA - $duplicadoB);
-        $precision['aceptabilidad'] = ($precision['diferencia'] <= 0.5) ? 'Aceptable' : 'No aceptable';
-
-        if ($precision['aceptabilidad'] === 'No aceptable') {
-            return back()->with('error', 'La precisión analítica no es aceptable (diferencia > 0.5).')->withInput();
-        }
-
-        // Procesar cada análisis enviado
-        $analyses = $request->input('analyses', []);
-        $itemsEnsayo = $request->items_ensayo;
-
-        foreach ($analyses as $analysisData) {
-            $analysisId = $analysisData['analysis_id'];
-            $analysis = Analysis::findOrFail($analysisId);
-
-            // Filtrar los ítems de ensayo que corresponden a este análisis
-            $analysisItems = array_filter($itemsEnsayo, function ($item) use ($analysisId) {
-                return $item['analysis_id'] == $analysisId;
-            });
-
-            // Reindexar los ítems para evitar problemas con claves
-            $analysisItems = array_values($analysisItems);
-
-            // Crear o actualizar el PhAnalysis
-            $phAnalysis = PhAnalysis::updateOrCreate(
-                ['analysis_id' => $analysisId],
-                [
-                    'consecutivo_no' => $request->consecutivo_no,
-                    'fecha_analisis' => $request->fecha_analisis,
-                    'user_id' => Auth::id(), // Cambiado de 'analista_id' a 'user_id'
-                    'codigo_probeta' => $request->codigo_probeta,
-                    'codigo_equipo' => $request->codigo_equipo,
-                    'serial_electrodo' => $request->serial_electrodo,
-                    'serial_sonda_temperatura' => $request->serial_sonda_temperatura,
-                    'controles_analiticos' => $controles,
-                    'precision_analitica' => $precision,
-                    'items_ensayo' => $analysisItems,
-                    'observaciones' => $request->observaciones,
-                    'review_status' => 'pending',
-                ]
-            );
-
-            // Actualizar el estado del análisis
-            $analysis->status = 'completed';
-            $analysis->save();
-        }
-
-        return redirect()->route('process.technical_index')
-                        ->with('success', 'Análisis de pH guardados exitosamente.');
-    } catch (\Exception $e) {
-        Log::error('Error in PhAnalysisController@storePhAnalysis: ' . $e->getMessage(), [
-            'stack_trace' => $e->getTraceAsString(),
+        Log::info('Storing pH analysis:', [
+            'process_id' => $processId,
+            'service_id' => $serviceId,
+            'user_id' => Auth::id()
         ]);
-        return back()->with('error', 'Error al guardar los análisis de pH: ' . $e->getMessage())->withInput();
+
+        $request->validate([
+            'items' => 'required|array',
+            'items.*.identificacion' => 'required|string',
+            'items.*.peso' => 'required|numeric|min:0',
+            'items.*.volumen_agua' => 'required|numeric|min:0',
+            'items.*.temperatura' => 'required|numeric',
+            'items.*.valor_leido' => 'required|numeric',
+            'items.*.observaciones' => 'nullable|string'
+        ]);
+
+        $process = Process::where('process_id', $processId)->firstOrFail();
+        $service = Service::findOrFail($serviceId);
+        $analysis = Analysis::where('process_id', $processId)
+                          ->where('service_id', $serviceId)
+                          ->firstOrFail();
+
+        // Calcular el promedio de los valores leídos
+        $valores = collect($request->items)->pluck('valor_leido');
+        $promedio = $valores->avg();
+
+        // Crear o actualizar el análisis de pH
+        $phAnalysis = PhAnalysis::updateOrCreate(
+            ['analysis_id' => $analysis->id],
+            [
+                'items_ensayo' => $request->items,
+                'promedio' => $promedio,
+                'status' => 'pending'
+            ]
+        );
+
+        // Actualizar el estado del análisis
+        $analysis->update([
+            'status' => 'pending',
+            'approved' => 0
+        ]);
+
+        Log::info('pH analysis stored successfully:', [
+            'analysis_id' => $analysis->id,
+            'ph_analysis_id' => $phAnalysis->id,
+            'promedio' => $promedio
+        ]);
+
+        return redirect()->route('ph_analysis.index')
+                       ->with('success', 'Análisis de pH guardado exitosamente.');
+    } catch (\Exception $e) {
+        Log::error('Error storing pH analysis: ' . $e->getMessage(), [
+            'process_id' => $processId,
+            'service_id' => $serviceId,
+            'stack_trace' => $e->getTraceAsString()
+        ]);
+        return redirect()->back()
+                       ->with('error', 'Error al guardar el análisis de pH: ' . $e->getMessage())
+                       ->withInput();
     }
 }
     public function downloadPhReport($analysisId)
@@ -360,7 +315,7 @@ public function storePhAnalysis(Request $request)
             $sheet->setCellValue("A{$row}", $control['identificacion']);
             $sheet->setCellValue("B{$row}", $control['lote']);
             $sheet->setCellValue("C{$row}", $control['valor_leido']);
-            $sheet->setCellValue("D{$row}", $control['valor_esperado']);
+            $sheet->setCellValue("D{$row}", $control['valor_leido']); // This was changed from valor_esperado to valor_leido
             $sheet->setCellValue("E{$row}", $control['error']);
             $sheet->setCellValue("F{$row}", $control['aceptabilidad']);
             if ($control['aceptabilidad'] == 'No aceptable') {
@@ -519,7 +474,7 @@ public function storePhAnalysis(Request $request)
             foreach ($controles as &$control) {
                 $valorLeido = floatval($control['valor_leido']);
                 $valorEsperado = floatval($control['valor_esperado']);
-                $control['error'] = ($valorEsperado != 0) ? abs(($valorLeido - valorEsperado) / $valorEsperado) * 100 : 0;
+                $control['error'] = ($valorEsperado != 0) ? abs(($valorLeido - $valorEsperado) / $valorEsperado) * 100 : 0;
                 $control['aceptabilidad'] = ($control['error'] <= 5) ? 'Aceptable' : 'No aceptable';
             }
 
@@ -533,7 +488,7 @@ public function storePhAnalysis(Request $request)
             $phAnalysis->update([
                 'consecutivo_no' => $request->consecutivo_no,
                 'fecha_analisis' => $request->fecha_analisis,
-                'analista_id' => Auth::id(),
+                'user_id' => Auth::id(),
                 'codigo_probeta' => $request->codigo_probeta,
                 'codigo_equipo' => $request->codigo_equipo,
                 'serial_electrodo' => $request->serial_electrodo,
@@ -598,4 +553,173 @@ public function storePhAnalysis(Request $request)
                        ->with('batch_file', $filename);
     }
     
+    public function batchProcess(Request $request)
+    {
+        try {
+            $analysisIds = $request->input('analysis_ids');
+
+            $query = Analysis::where('status', 'pending')
+                ->whereHas('service', function ($serviceQuery) {
+                    $serviceQuery->where('descripcion', 'like', '%pH%');
+                })
+                ->with(['service', 'process', 'phAnalysis']);
+
+            if (!empty($analysisIds)) {
+                $query->whereIn('id', $analysisIds);
+            }
+
+            $pendingAnalyses = $query->get();
+
+            if ($pendingAnalyses->isEmpty()) {
+                return redirect()->route('ph_analysis.index')
+                               ->with('error', 'No hay análisis de pH pendientes para procesar o los seleccionados ya fueron procesados.');
+            }
+
+            $pendingItems = collect(); // Initialize an empty collection for pending items
+
+            // Asegurarse de que cada análisis tenga al menos un item de ensayo por defecto si no existe o está vacío
+            foreach ($pendingAnalyses as $analysis) {
+                if (empty($analysis->phAnalysis->items_ensayo) || collect($analysis->phAnalysis->items_ensayo)->every(fn($i) => isset($i['valor_leido']) && $i['valor_leido'] !== '')) {
+                    // Add a default item for this analysis and attach its analysis_id
+                    $pendingItems->push([
+                        'identificacion' => 'Muestra ' . ($pendingAnalyses->search($analysis) + 1),
+                        'peso' => '',
+                        'volumen_agua' => '',
+                        'temperatura' => '',
+                        'valor_leido' => '',
+                        'observaciones' => '',
+                        'analysis_id' => $analysis->id, // Important for linking back
+                    ]);
+                } else {
+                    // Collect existing items from this analysis and attach its analysis_id
+                    foreach ($analysis->phAnalysis->items_ensayo as $item) {
+                        $pendingItems->push($item + ['analysis_id' => $analysis->id]);
+                    }
+                }
+            }
+
+            Log::info('PhAnalysisController@batchProcess loaded data:', [
+                'pending_analyses_count' => $pendingAnalyses->count(),
+                'pending_items_count' => $pendingItems->count(),
+                'analysis_ids_requested' => $analysisIds,
+            ]);
+
+            return view('ph_analyses.process', compact('pendingAnalyses', 'pendingItems'));
+        } catch (\Exception $e) {
+            Log::error('Error in PhAnalysisController@batchProcess: ' . $e->getMessage(), [
+                'stack_trace' => $e->getTraceAsString(),
+            ]);
+            return redirect()->route('ph_analysis.index')
+                           ->with('error', 'Error al cargar el formulario de análisis de pH: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Store a batch of pH analyses.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function storeBatch(Request $request)
+    {
+        try {
+            Log::info('Storing batch pH analyses:', ['user_id' => Auth::id()]);
+
+            $request->validate([
+                'analyses' => 'required|array',
+                'analyses.*.analysis_id' => 'required|exists:analyses,id',
+                'consecutivo_no' => 'required|string|max:255',
+                'fecha_analisis' => 'required|date',
+                'codigo_probeta' => 'required|string|max:255',
+                'codigo_equipo' => 'required|string|max:255',
+                'serial_electrodo' => 'required|string|max:255',
+                'serial_sonda_temperatura' => 'required|string|max:255',
+                'controles_analiticos' => 'required|array',
+                'controles_analiticos.*.identificacion' => 'required|string',
+                'controles_analiticos.*.lote' => 'required|string',
+                'controles_analiticos.*.valor_leido' => 'required|numeric',
+                'controles_analiticos.*.valor_esperado' => 'required|numeric',
+                'controles_analiticos.*.observaciones' => 'nullable|string',
+                'items' => 'required|array',
+                'items.*.identificacion' => 'required|string',
+                'items.*.peso' => 'required|numeric|min:0',
+                'items.*.volumen_agua' => 'required|numeric|min:0',
+                'items.*.temperatura' => 'required|numeric',
+                'items.*.valor_leido' => 'required|numeric',
+                'items.*.observaciones' => 'nullable|string'
+            ]);
+
+            $consecutivo_no = $request->input('consecutivo_no');
+            $fecha_analisis = $request->input('fecha_analisis');
+            $codigo_probeta = $request->input('codigo_probeta');
+            $codigo_equipo = $request->input('codigo_equipo');
+            $serial_electrodo = $request->input('serial_electrodo');
+            $serial_sonda_temperatura = $request->input('serial_sonda_temperatura');
+            $controles_analiticos = $request->input('controles_analiticos');
+            $items_ensayo = $request->input('items');
+            $user_id = Auth::id();
+
+            // Calculate error and acceptability for analytical controls
+            foreach ($controles_analiticos as &$control) {
+                $valorLeido = floatval($control['valor_leido']);
+                $valorEsperado = floatval($control['valor_esperado']);
+                $control['error'] = ($valorEsperado != 0) ? abs(($valorLeido - $valorEsperado) / $valorEsperado) * 100 : 0;
+                $control['aceptabilidad'] = ($control['error'] <= 5) ? 'Aceptable' : 'No aceptable';
+            }
+
+            // Calculate average of sample values
+            $promedio_muestra = collect($items_ensayo)->avg('valor_leido');
+
+            foreach ($request->input('analyses') as $analysisData) {
+                $analysisId = $analysisData['analysis_id'];
+                $analysis = Analysis::findOrFail($analysisId);
+
+                PhAnalysis::updateOrCreate(
+                    ['analysis_id' => $analysisId],
+                    [
+                        'consecutivo_no' => $consecutivo_no,
+                        'fecha_analisis' => $fecha_analisis,
+                        'user_id' => Auth::id(),
+                        'codigo_probeta' => $codigo_probeta,
+                        'codigo_equipo' => $codigo_equipo,
+                        'serial_electrodo' => $serial_electrodo,
+                        'serial_sonda_temperatura' => $serial_sonda_temperatura,
+                        'controles_analiticos' => $controles_analiticos,
+                        'precision_analitica' => [
+                            'duplicado_a' => [
+                                'identificacion' => 'Duplicado A',
+                                'valor_leido' => 0,
+                            ],
+                            'duplicado_b' => [
+                                'identificacion' => 'Duplicado B',
+                                'valor_leido' => 0,
+                            ],
+                            'promedio' => 0,
+                            'diferencia' => 0,
+                            'aceptabilidad' => 'Aceptable'
+                        ],
+                        'items_ensayo' => $items_ensayo,
+                        'promedio_muestra' => $promedio_muestra,
+                        'observaciones_generales' => $request->input('observaciones_generales'),
+                        'status' => 'completed',
+                        'review_status' => 'pending',
+                    ]
+                );
+
+                $analysis->update([
+                    'status' => 'completed',
+                    'approved' => 0,
+                ]);
+            }
+
+            Log::info('Batch pH analyses stored successfully.');
+            return redirect()->route('ph_analysis.index')->with('success', 'Lote de análisis de pH guardado exitosamente.');
+        } catch (\Exception $e) {
+            Log::error('Error storing batch pH analyses: ' . $e->getMessage(), [
+                'stack_trace' => $e->getTraceAsString(),
+                'request_data' => $request->all(),
+            ]);
+            return redirect()->back()->with('error', 'Error al guardar el lote de análisis de pH: ' . $e->getMessage())->withInput();
+        }
+    }
 }

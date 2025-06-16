@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Gestión de Análisis de Intercambio Catiónico')
+
 @section('contenido')
 <div class="content-wrapper">
     <!-- Content Header -->
@@ -7,12 +9,12 @@
         <div class="container-fluid">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <h1>Procesos Técnicos</h1>
+                    <h1>Gestión de Análisis de Intercambio Catiónico</h1>
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{ route('personal_tecnico.dashboard') }}">Inicio</a></li>
-                        <li class="breadcrumb-item active">Procesos Técnicos</li>
+                        <li class="breadcrumb-item active">Análisis de Intercambio Catiónico</li>
                     </ol>
                 </div>
             </div>
@@ -35,24 +37,24 @@
                 </div>
             @endif
 
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <button type="button" class="btn btn-primary" id="processSelectedBtn" style="display: none;">Procesar Seleccionados</button>
+                    <button type="button" class="btn btn-secondary" id="clearSelectionBtn" style="display: none;">Limpiar Selección</button>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Procesos Pendientes</h3>
+                    <h3 class="card-title">Análisis Pendientes</h3>
                 </div>
                 <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <button type="button" class="btn btn-primary" id="processSelectedBtn">Procesar Seleccionados</button>
-                            <button type="button" class="btn btn-secondary" id="clearSelectionBtn" style="display: none;">Limpiar Selección</button>
-                        </div>
-                    </div>
                     <div class="table-responsive">
                         <table class="table table-bordered table-striped">
                             <thead>
                                 <tr>
                                     <th><input type="checkbox" id="selectAll"></th>
                                     <th>ID Proceso</th>
-                                    <th>Cliente</th>
                                     <th>Servicio</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
@@ -61,37 +63,24 @@
                             <tbody>
                                 @forelse($processes as $process)
                                     @foreach($process->analyses as $analysis)
-                                        <tr data-analysis-id="{{ $analysis->id }}" data-service-type="{{ str_contains(strtolower($analysis->service->descripcion ?? ''), 'ph') ? 'ph' : (str_contains(strtolower($analysis->service->descripcion ?? ''), 'intercambio catiónico') ? 'cation_exchange' : 'other') }}">
+                                        <tr data-analysis-id="{{ $analysis->id }}" data-service-type="cation_exchange">
                                             <td><input type="checkbox" class="analysis-checkbox" value="{{ $analysis->id }}"></td>
                                             <td>{{ $process->process_id }}</td>
-                                            <td>{{ $process->quote->customer->nombre ?? 'N/A' }}</td>
                                             <td>{{ $analysis->service->descripcion ?? 'N/A' }}</td>
                                             <td>
                                                 <span class="badge badge-warning">Pendiente</span>
                                             </td>
                                             <td>
-                                                @if(str_contains(strtolower($analysis->service->descripcion ?? ''), 'ph'))
-                                                    <a href="{{ route('ph_analysis.ph_analysis', ['processId' => $process->process_id, 'serviceId' => $analysis->service_id]) }}" 
-                                                       class="btn btn-primary btn-sm">
-                                                        Procesar pH
-                                                    </a>
-                                                @elseif(str_contains(strtolower($analysis->service->descripcion ?? ''), 'conductividad'))
-                                                    <a href="{{ route('conductivity.create', ['processId' => $process->process_id, 'serviceId' => $analysis->service_id]) }}" 
-                                                       class="btn btn-info btn-sm">
-                                                        Procesar Conductividad
-                                                    </a>
-                                                @elseif(str_contains(strtolower($analysis->service->descripcion ?? ''), 'intercambio catiónico'))
-                                                    <a href="{{ route('cation_exchange_analysis.process', ['processId' => $process->process_id, 'serviceId' => $analysis->service_id]) }}" 
-                                                       class="btn btn-success btn-sm">
-                                                        Procesar Intercambio Catiónico
-                                                    </a>
-                                                @endif
+                                                <a href="{{ route('cation_exchange_analysis.process', ['processId' => $process->process_id, 'serviceId' => $analysis->service_id]) }}" 
+                                                   class="btn btn-primary btn-sm">
+                                                    Procesar Análisis
+                                                </a>
                                             </td>
                                         </tr>
                                     @endforeach
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center">No hay procesos pendientes</td>
+                                        <td colspan="5" class="text-center">No hay análisis pendientes</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -137,15 +126,9 @@
 
         $('#processSelectedBtn').on('click', function() {
             var selectedAnalyses = [];
-            var serviceTypes = new Set();
 
             $('.analysis-checkbox:checked').each(function() {
-                var row = $(this).closest('tr');
-                var analysisId = row.data('analysis-id');
-                var serviceType = row.data('service-type');
-
-                selectedAnalyses.push(analysisId);
-                serviceTypes.add(serviceType);
+                selectedAnalyses.push($(this).val());
             });
 
             if (selectedAnalyses.length === 0) {
@@ -153,21 +136,7 @@
                 return;
             }
 
-            if (serviceTypes.size > 1) {
-                alert('Solo puedes procesar análisis del mismo tipo (pH o Intercambio Catiónico) en un lote.');
-                return;
-            }
-
-            var type = serviceTypes.values().next().value;
-            var baseUrl = '';
-            if (type === 'ph') {
-                baseUrl = '{{ route('ph_analysis.batch_process') }}';
-            } else if (type === 'cation_exchange') {
-                baseUrl = '{{ route('cation_exchange_analysis.batch_process') }}';
-            } else {
-                alert('Tipo de servicio no soportado para procesamiento por lotes.');
-                return;
-            }
+            var baseUrl = '{{ route('cation_exchange_analysis.batch_process') }}';
 
             var form = $('<form>').attr({
                 method: 'GET',
@@ -189,4 +158,4 @@
         updateProcessButtonState(); // Initial state on page load
     });
 </script>
-@endpush
+@endpush 

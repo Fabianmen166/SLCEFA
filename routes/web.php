@@ -8,6 +8,8 @@ use App\Http\Controllers\ServicePackageController;
 use App\Http\Controllers\ProcessController;
 use App\Http\Controllers\CustomerTypeController;
 use App\Http\Controllers\PhAnalysisController;
+use App\Http\Controllers\CationExchangeAnalysisController;
+use App\Http\Controllers\PhosphorusAnalysisController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -122,14 +124,29 @@ Route::post('/cotizaciones/process/{process_id}/archive', [ProcessController::cl
     });
 Route::post('/cotizaciones/{quote_id}/process/start', [ProcessController::class, 'start'])->name('cotizacion.process.start');
     Route::middleware('role:personal_tecnico')->group(function () {
-        Route::get('/ph-analyses', [PhAnalysisController::class, 'index'])->name('ph_analysis.index'); // Add this route
+        Route::get('/ph-analyses', [PhAnalysisController::class, 'index'])->name('ph_analysis.index');
         Route::get('/processes/technical', [ProcessController::class, 'technicalIndex'])->name('process.technical_index');
 
         // pH Analysis Routes
         Route::get('/ph-analyses/{processId}/{serviceId}', [PhAnalysisController::class, 'phAnalysis'])->name('ph_analysis.ph_analysis');
         Route::post('/ph-analyses/{processId}/{serviceId}', [PhAnalysisController::class, 'storePhAnalysis'])->name('ph_analysis.store_ph_analysis');
         Route::get('/ph-analyses/report/{analysisId}', [PhAnalysisController::class, 'downloadPhReport'])->name('ph_analysis.download_report');
-        Route::post('/ph-analyses/batch', [PhAnalysisController::class, 'batchPhAnalysis'])->name('ph_analysis.batch_ph_analysis');
+        Route::get('/ph-analyses/batch', [PhAnalysisController::class, 'batchProcess'])->name('ph_analysis.batch_process');
+        Route::match(['get', 'post'], '/ph-analyses/process-all', [PhAnalysisController::class, 'processAll'])->name('ph_analysis.process_all');
+
+        // Rutas para análisis de intercambio catiónico
+        Route::prefix('cation-exchange-analyses')->name('cation_exchange_analysis.')->group(function () {
+            Route::get('/', [CationExchangeAnalysisController::class, 'index'])->name('index');
+            Route::get('/batch-process', [CationExchangeAnalysisController::class, 'batchProcess'])->name('batch_process');
+            Route::post('/batch-process', [CationExchangeAnalysisController::class, 'storeBatchProcess'])->name('store_batch_process');
+            Route::get('/{processId}/{serviceId}', [CationExchangeAnalysisController::class, 'cationExchangeAnalysis'])->name('process');
+            Route::post('/{processId}/{serviceId}', [CationExchangeAnalysisController::class, 'storeCationExchangeAnalysis'])->name('store_cation_exchange_analysis');
+        });
+
+        // Phosphorus Analysis Routes
+        Route::get('/phosphorus-analyses', [PhosphorusAnalysisController::class, 'index'])->name('phosphorus_analysis.index');
+        Route::get('/phosphorus-analyses/{processId}/{serviceId}', [PhosphorusAnalysisController::class, 'phosphorusAnalysis'])->name('phosphorus_analysis.phosphorus_analysis');
+        Route::post('/phosphorus-analyses/{processId}/{serviceId}', [PhosphorusAnalysisController::class, 'storePhosphorusAnalysis'])->name('phosphorus_analysis.store_phosphorus_analysis');
     });
 
     // Rutas para Revisión (Admin y Gestión de Calidad)
@@ -139,6 +156,13 @@ Route::post('/cotizaciones/{quote_id}/process/start', [ProcessController::class,
         Route::post('/ph-analyses/review/{phAnalysisId}', [PhAnalysisController::class, 'storeReview'])->name('ph_analysis.store_review');
         Route::get('/ph-analyses/edit/{phAnalysisId}', [PhAnalysisController::class, 'editAnalysis'])->name('ph_analysis.edit_analysis');
         Route::patch('/ph-analyses/update/{phAnalysisId}', [PhAnalysisController::class, 'updateAnalysis'])->name('ph_analysis.update_analysis');
+
+        // Cation Exchange Analysis Review Routes
+        Route::get('/cation-exchange-analyses/review', [CationExchangeAnalysisController::class, 'indexForReview'])->name('cation_exchange_analysis.review_index');
+        Route::get('/cation-exchange-analyses/review/{analysis_id}', [CationExchangeAnalysisController::class, 'reviewAnalysis'])->name('cation_exchange_analysis.review_analysis');
+        Route::post('/cation-exchange-analyses/review/{cationExchangeAnalysisId}', [CationExchangeAnalysisController::class, 'storeReview'])->name('cation_exchange_analysis.store_review');
+        Route::get('/cation-exchange-analyses/edit/{cationExchangeAnalysisId}', [CationExchangeAnalysisController::class, 'editAnalysis'])->name('cation_exchange_analysis.edit_analysis');
+        Route::patch('/cation-exchange-analyses/update/{cationExchangeAnalysisId}', [CationExchangeAnalysisController::class, 'updateAnalysis'])->name('cation_exchange_analysis.update_analysis');
 
         Route::get('/cotizaciones/process/{process_id}/results-pdf', [ProcessController::class, 'generateResultsPDF'])->name('cotizacion.process.results_pdf');
     });
@@ -154,9 +178,7 @@ Route::get('/processes/ph-analysis/{analysisId}/download', [ProcessController::c
         Route::get('/process/edit-analysis/{analysis_id}', [ProcessController::class, 'editAnalysis'])->name('process.edit_analysis');
         Route::post('/process/update-analysis/{analysis_id}', [ProcessController::class, 'updateAnalysis'])->name('process.update_analysis');
         Route::get('/ph-analyses', [PhAnalysisController::class, 'index'])->name('ph_analysis.index');
-        Route::get('/ph-analyses/process-all', [PhAnalysisController::class, 'processAll'])->name('ph_analysis.process_all'); 
- Route::post('/ph-analyses/store', [PhAnalysisController::class, 'storePhAnalysis'])->name('ph_analysis.store');   
-        Route::post('/ph-analyses/store', [PhAnalysisController::class, 'storePhAnalysis'])->name('ph_analysis.store');
+        Route::post('/ph-analyses/store', [PhAnalysisController::class, 'storeBatch'])->name('ph_analysis.store');
     });
 
     Route::middleware('role:admin')->group(function () {

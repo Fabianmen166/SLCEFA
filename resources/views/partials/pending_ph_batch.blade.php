@@ -17,7 +17,7 @@
 @if (empty($pendingPhAnalyses))
     <p>No hay análisis de pH pendientes.</p>
 @else
-    <form action="{{ route('ph_analysis.batch_ph_analysis') }}" method="POST">
+    <form action="{{ route('ph_analysis.batch_process') }}" method="POST">
         @csrf
         <div class="alert alert-info">
             <p><strong>Instrucciones:</strong> Seleccione hasta 20 análisis de pH para procesar en un solo lote. Después de 20 análisis, se deben repetir los controles analíticos.</p>

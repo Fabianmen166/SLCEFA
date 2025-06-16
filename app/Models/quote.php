@@ -42,6 +42,7 @@ class Quote extends Model
     {
         return $this->hasMany(Process::class, 'quote_id', 'quote_id');
     }
+
     public function services()
     {
         return $this->belongsToMany(Service::class, 'quote_services', 'quote_id', 'services_id')

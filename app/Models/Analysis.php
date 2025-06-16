@@ -27,8 +27,14 @@ class Analysis extends Model
     {
         return $this->hasOne(PhAnalysis::class, 'analysis_id');
     }
+
     public function conductivityAnalysis()
     {
         return $this->hasOne(ConductivityAnalysis::class, 'analysis_id');
+    }
+
+    public function cationExchangeAnalysis()
+    {
+        return $this->hasOne(CationExchangeAnalysis::class, 'analysis_id');
     }
 }

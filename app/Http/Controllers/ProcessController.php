@@ -263,7 +263,7 @@ class ProcessController extends Controller
                         $query->with('customer');
                     },
                     'analyses' => function ($query) {
-                        $query->with('service'); // Removed the where('status', 'pending') filter
+                        $query->where('status', 'pending')->with(['service', 'phAnalysis', 'conductivityAnalysis', 'cationExchangeAnalysis']);
                     },
                 ])
                 ->get();

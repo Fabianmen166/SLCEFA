@@ -22,7 +22,7 @@
         </div>
     </section>
 
-    <!-- Main Content -->
+    <!-- Main Main Content -->
     <section class="content">
         <div class="container-fluid">
             @if (session('success'))
@@ -38,23 +38,44 @@
                 </div>
             @endif
 
-            @if ($pendingAnalyses->isEmpty())
+            {{-- Determine if we are in single analysis or batch analysis context --}}
+            @php
+                // Ensure $pendingAnalyses is always set, even if null
+                if (!isset($pendingAnalyses)) {
+                    $pendingAnalyses = null;
+                }
+
+                $isBatch = $pendingAnalyses instanceof \Illuminate\Support\Collection;
+
+                // Normalize data structure for the view
+                if ($isBatch) {
+                    // Data comes from processAll method
+                    $displayAnalyses = $pendingAnalyses; // Collection of Analysis models
+                    $displayPhAnalysis = null; // No single PhAnalysis for general sections in batch mode
+                    $formActionRoute = route('ph_analysis.store'); // Route for batch processing
+                } else {
+                    // Data comes from phAnalysis method (single analysis)
+                    $displayAnalyses = collect([$analysis]); // Wrap the single Analysis model in a collection
+                    $displayPhAnalysis = $phAnalysis; // The specific PhAnalysis model for this single analysis
+                    $formActionRoute = route('ph_analysis.store_ph_analysis', ['processId' => $process->process_id, 'serviceId' => $service->services_id]); // Route for single analysis
+                }
+
+                // Determine the primary analysis to pull general info from (first in batch, or the single one)
+                $firstAnalysis = $displayAnalyses->first();
+            @endphp
+
+            @if ($displayAnalyses->isEmpty())
                 <div class="alert alert-danger">
                     Error: No hay análisis de pH pendientes para procesar.
                 </div>
                 <a href="{{ route('ph_analysis.index') }}" class="btn btn-secondary">Regresar</a>
             @else
-                <!-- Usamos el primer análisis para las secciones generales -->
-                @php
-                    $firstAnalysis = $pendingAnalyses->first();
-                @endphp
-
-                <form action="{{ route('ph_analysis.store') }}" method="POST" id="phAnalysisForm">
+                <form action="{{ $formActionRoute }}" method="POST" id="phAnalysisForm">
                     @csrf
 
                     <!-- Hidden Input for Analysis IDs -->
-                    @foreach ($pendingAnalyses as $analysis)
-                        <input type="hidden" name="analyses[{{$analysis->id}}][analysis_id]" value="{{$analysis->id}}">
+                    @foreach ($displayAnalyses as $analysis_item)
+                        <input type="hidden" name="analyses[{{$loop->index}}][analysis_id]" value="{{$analysis_item->id}}">
                     @endforeach
 
                     <!-- Sección: Información General -->
@@ -67,19 +88,19 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="process_id">Procesos Involucrados</label>
-                                        <input type="text" class="form-control" id="process_id" value="{{ $pendingAnalyses->pluck('process.process_id')->unique()->implode(', ') }}" readonly>
+                                        <input type="text" class="form-control" id="process_id" value="{{ $displayAnalyses->pluck('process.process_id')->unique()->implode(', ') }}" readonly>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="service">Servicios Involucrados</label>
-                                        <input type="text" class="form-control" id="service" value="{{ $pendingAnalyses->pluck('service.descripcion')->unique()->implode(', ') }}" readonly>
+                                        <input type="text" class="form-control" id="service" value="{{ $displayAnalyses->pluck('service.descripcion')->unique()->implode(', ') }}" readonly>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="consecutivo">Consecutivo No.</label>
-                                        <input type="text" class="form-control @error('consecutivo_no') is-invalid @enderror" id="consecutivo" name="consecutivo_no" value="{{ old('consecutivo_no', '') }}" required>
+                                        <input type="text" class="form-control @error('consecutivo_no') is-invalid @enderror" id="consecutivo" name="consecutivo_no" value="{{ old('consecutivo_no', $displayPhAnalysis->consecutivo_no ?? '') }}" required>
                                         @error('consecutivo_no')
                                             <span class="invalid-feedback">{{ $message }}</span>
                                         @enderror
@@ -90,7 +111,7 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="fecha_analisis">Fecha del Análisis</label>
-                                        <input type="date" class="form-control @error('fecha_analisis') is-invalid @enderror" id="fecha_analisis" name="fecha_analisis" value="{{ old('fecha_analisis', $firstAnalysis->phAnalysis->fecha_analisis ?? now()->format('Y-m-d')) }}" required>
+                                        <input type="date" class="form-control @error('fecha_analisis') is-invalid @enderror" id="fecha_analisis" name="fecha_analisis" value="{{ old('fecha_analisis', $displayPhAnalysis->fecha_analisis ?? now()->format('Y-m-d')) }}" required>
                                         @error('fecha_analisis')
                                             <span class="invalid-feedback">{{ $message }}</span>
                                         @enderror
@@ -117,7 +138,7 @@
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="codigo_probeta">Código de la Probeta</label>
-                                        <input type="text" class="form-control @error('codigo_probeta') is-invalid @enderror" id="codigo_probeta" name="codigo_probeta" value="{{ old('codigo_probeta', $firstAnalysis->phAnalysis->codigo_probeta ?? '') }}" required>
+                                        <input type="text" class="form-control @error('codigo_probeta') is-invalid @enderror" id="codigo_probeta" name="codigo_probeta" value="{{ old('codigo_probeta', $displayPhAnalysis->codigo_probeta ?? '') }}" required>
                                         @error('codigo_probeta')
                                             <span class="invalid-feedback">{{ $message }}</span>
                                         @enderror
@@ -126,7 +147,7 @@
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="codigo_equipo">Código del Equipo Potenciométrico</label>
-                                        <input type="text" class="form-control @error('codigo_equipo') is-invalid @enderror" id="codigo_equipo" name="codigo_equipo" value="{{ old('codigo_equipo', $firstAnalysis->phAnalysis->codigo_equipo ?? '') }}" required>
+                                        <input type="text" class="form-control @error('codigo_equipo') is-invalid @enderror" id="codigo_equipo" name="codigo_equipo" value="{{ old('codigo_equipo', $displayPhAnalysis->codigo_equipo ?? '') }}" required>
                                         @error('codigo_equipo')
                                             <span class="invalid-feedback">{{ $message }}</span>
                                         @enderror
@@ -135,7 +156,7 @@
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="serial_electrodo">Serial del Electrodo</label>
-                                        <input type="text" class="form-control @error('serial_electrodo') is-invalid @enderror" id="serial_electrodo" name="serial_electrodo" value="{{ old('serial_electrodo', $firstAnalysis->phAnalysis->serial_electrodo ?? '') }}" required>
+                                        <input type="text" class="form-control @error('serial_electrodo') is-invalid @enderror" id="serial_electrodo" name="serial_electrodo" value="{{ old('serial_electrodo', $displayPhAnalysis->serial_electrodo ?? '') }}" required>
                                         @error('serial_electrodo')
                                             <span class="invalid-feedback">{{ $message }}</span>
                                         @enderror
@@ -144,7 +165,7 @@
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="serial_sonda">Serial de la Sonda de Temperatura</label>
-                                        <input type="text" class="form-control @error('serial_sonda_temperatura') is-invalid @enderror" id="serial_sonda" name="serial_sonda_temperatura" value="{{ old('serial_sonda_temperatura', $firstAnalysis->phAnalysis->serial_sonda_temperatura ?? '') }}" required>
+                                        <input type="text" class="form-control @error('serial_sonda_temperatura') is-invalid @enderror" id="serial_sonda" name="serial_sonda_temperatura" value="{{ old('serial_sonda_temperatura', $displayPhAnalysis->serial_sonda_temperatura ?? '') }}" required>
                                         @error('serial_sonda_temperatura')
                                             <span class="invalid-feedback">{{ $message }}</span>
                                         @enderror
@@ -174,7 +195,7 @@
                                 </thead>
                                 <tbody>
                                     @php
-                                        $controlCount = $pendingAnalyses->count() > 1 ? 4 : 1;
+                                        $controlCount = $displayAnalyses->count() > 1 ? 4 : 1;
                                     @endphp
                                     @for ($index = 0; $index < $controlCount; $index++)
                                         @php
@@ -183,12 +204,12 @@
                                         @endphp
                                         <tr class="control-row">
                                             <td><input type="text" class="form-control control-identificacion" name="controles_analiticos[{{$index}}][identificacion]" value="{{ $identificacion }}" readonly></td>
-                                            <td><input type="text" class="form-control control-lote @error('controles_analiticos.' . $index . '.lote') is-invalid @enderror" name="controles_analiticos[{{$index}}][lote]" value="{{ old('controles_analiticos.' . $index . '.lote', $firstAnalysis->phAnalysis->controles_analiticos[$index]['lote'] ?? '') }}"></td>
-                                            <td><input type="number" step="0.01" class="form-control control-valor-leido @error('controles_analiticos.' . $index . '.valor_leido') is-invalid @enderror" name="controles_analiticos[{{$index}}][valor_leido]" value="{{ old('controles_analiticos.' . $index . '.valor_leido', $firstAnalysis->phAnalysis->controles_analiticos[$index]['valor_leido'] ?? '') }}" data-index="{{$index}}"></td>
-                                            <td><input type="number" step="0.01" class="form-control control-valor-esperado @error('controles_analiticos.' . $index . '.valor_esperado') is-invalid @enderror" name="controles_analiticos[{{$index}}][valor_esperado]" value="{{ old('controles_analiticos.' . $index . '.valor_esperado', $firstAnalysis->phAnalysis->controles_analiticos[$index]['valor_esperado'] ?? '') }}" data-index="{{$index}}"></td>
+                                            <td><input type="text" class="form-control control-lote @error('controles_analiticos.' . $index . '.lote') is-invalid @enderror" name="controles_analiticos[{{$index}}][lote]" value="{{ old('controles_analiticos.' . $index . '.lote', $displayPhAnalysis->controles_analiticos[$index]['lote'] ?? '') }}"></td>
+                                            <td><input type="number" step="0.01" class="form-control control-valor-leido @error('controles_analiticos.' . $index . '.valor_leido') is-invalid @enderror" name="controles_analiticos[{{$index}}][valor_leido]" value="{{ old('controles_analiticos.' . $index . '.valor_leido', $displayPhAnalysis->controles_analiticos[$index]['valor_leido'] ?? '') }}" data-index="{{$index}}"></td>
+                                            <td><input type="number" step="0.01" class="form-control control-valor-esperado @error('controles_analiticos.' . $index . '.valor_esperado') is-invalid @enderror" name="controles_analiticos[{{$index}}][valor_esperado]" value="{{ old('controles_analiticos.' . $index . '.valor_esperado', $displayPhAnalysis->controles_analiticos[$index]['valor_esperado'] ?? '') }}" data-index="{{$index}}"></td>
                                             <td><span class="form-control-plaintext" id="error_{{$index}}"></span></td>
                                             <td><span class="form-control-plaintext" id="aceptabilidad_{{$index}}"></span></td>
-                                            <td><input type="text" class="form-control @error('controles_analiticos.' . $index . '.observaciones') is-invalid @enderror" name="controles_analiticos[{{$index}}][observaciones]" value="{{ old('controles_analiticos.' . $index . '.observaciones', $firstAnalysis->phAnalysis->controles_analiticos[$index]['observaciones'] ?? '') }}"></td>
+                                            <td><input type="text" class="form-control @error('controles_analiticos.' . $index . '.observaciones') is-invalid @enderror" name="controles_analiticos[{{$index}}][observaciones]" value="{{ old('controles_analiticos.' . $index . '.observaciones', $displayPhAnalysis->controles_analiticos[$index]['observaciones'] ?? '') }}"></td>
                                         </tr>
                                     @endfor
                                 </tbody>
@@ -200,216 +221,204 @@
                     <!-- Sección: Precisión Analítica -->
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Precisión Analítica</h3>
+                            <h3 class="card-title">Precisión Analítica (Muestras por Duplicado)</h3>
                         </div>
                         <div class="card-body">
-                            <table class="table table-bordered">
+                            <table class="table table-bordered" id="precision_analitica_table">
                                 <thead>
                                     <tr>
                                         <th>Identificación</th>
+                                        <th>Peso (g)</th>
+                                        <th>Volumen de Agua (mL)</th>
+                                        <th>Temperatura (°C)</th>
                                         <th>Valor Leído (pH)</th>
-                                        <th>Promedio</th>
-                                        <th>Diferencia</th>
-                                        <th>Aceptabilidad</th>
                                         <th>Observaciones</th>
+                                        <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td><input type="text" class="form-control @error('precision_analitica.duplicado_a.identificacion') is-invalid @enderror" name="precision_analitica[duplicado_a][identificacion]" value="{{ old('precision_analitica.duplicado_a.identificacion', $firstAnalysis->phAnalysis->precision_analitica['duplicado_a']['identificacion'] ?? '') }}" placeholder="Identificación Duplicado A" required></td>
-                                        <td><input type="number" step="0.01" class="form-control duplicado-a @error('precision_analitica.duplicado_a.valor_leido') is-invalid @enderror" name="precision_analitica[duplicado_a][valor_leido]" value="{{ old('precision_analitica.duplicado_a.valor_leido', $firstAnalysis->phAnalysis->precision_analitica['duplicado_a']['valor_leido'] ?? '') }}" required></td>
-                                        <td rowspan="2"><span class="form-control-plaintext" id="promedio"></span></td>
-                                        <td rowspan="2"><span class="form-control-plaintext" id="diferencia"></span></td>
-                                        <td rowspan="2"><span class="form-control-plaintext" id="aceptabilidad_precision"></span></td>
-                                        <td><input type="text" class="form-control @error('precision_analitica.duplicado_a.observaciones') is-invalid @enderror" name="precision_analitica[duplicado_a][observaciones]" value="{{ old('precision_analitica.duplicado_a.observaciones', $firstAnalysis->phAnalysis->precision_analitica['duplicado_a']['observaciones'] ?? '') }}"></td>
-                                    </tr>
-                                    <tr>
-                                        <td><input type="text" class="form-control @error('precision_analitica.duplicado_b.identificacion') is-invalid @enderror" name="precision_analitica[duplicado_b][identificacion]" value="{{ old('precision_analitica.duplicado_b.identificacion', $firstAnalysis->phAnalysis->precision_analitica['duplicado_b']['identificacion'] ?? '') }}" placeholder="Identificación Duplicado B" required></td>
-                                        <td><input type="number" step="0.01" class="form-control duplicado-b @error('precision_analitica.duplicado_b.valor_leido') is-invalid @enderror" name="precision_analitica[duplicado_b][valor_leido]" value="{{ old('precision_analitica.duplicado_b.valor_leido', $firstAnalysis->phAnalysis->precision_analitica['duplicado_b']['valor_leido'] ?? '') }}" required></td>
-                                        <td><input type="text" class="form-control @error('precision_analitica.duplicado_b.observaciones') is-invalid @enderror" name="precision_analitica[duplicado_b][observaciones]" value="{{ old('precision_analitica.duplicado_b.observaciones', $firstAnalysis->phAnalysis->precision_analitica['duplicado_b']['observaciones'] ?? '') }}"></td>
-                                    </tr>
+                                    {{-- Loop through pendingItems --}}
+                                    @forelse($pendingItems as $itemIndex => $item)
+                                        <tr class="item-row" data-analysis-id="{{ $item['analysis_id'] }}">
+                                            <td><input type="text" class="form-control" name="items[{{ $itemIndex }}][identificacion]" value="{{ old('items.' . $itemIndex . '.identificacion', $item['identificacion'] ?? '') }}" required></td>
+                                            <td><input type="number" step="0.001" class="form-control" name="items[{{ $itemIndex }}][peso]" value="{{ old('items.' . $itemIndex . '.peso', $item['peso'] ?? '') }}" required></td>
+                                            <td><input type="number" step="0.01" class="form-control" name="items[{{ $itemIndex }}][volumen_agua]" value="{{ old('items.' . $itemIndex . '.volumen_agua', $item['volumen_agua'] ?? '') }}" required></td>
+                                            <td><input type="number" step="0.1" class="form-control" name="items[{{ $itemIndex }}][temperatura]" value="{{ old('items.' . $itemIndex . '.temperatura', $item['temperatura'] ?? '') }}" required></td>
+                                            <td><input type="number" step="0.01" class="form-control" name="items[{{ $itemIndex }}][valor_leido]" value="{{ old('items.' . $itemIndex . '.valor_leido', $item['valor_leido'] ?? '') }}" required></td>
+                                            <td><input type="text" class="form-control" name="items[{{ $itemIndex }}][observaciones]" value="{{ old('items.' . $itemIndex . '.observaciones', $item['observaciones'] ?? '') }}"></td>
+                                            <td><button type="button" class="btn btn-danger btn-sm remove-row">Eliminar</button></td>
+                                        </tr>
+                                    @empty
+                                        {{-- Render at least one empty row if no pending items exist --}}
+                                        <tr class="item-row" data-analysis-id="">
+                                            <td><input type="text" class="form-control" name="items[0][identificacion]" value="Muestra 1" required></td>
+                                            <td><input type="number" step="0.001" class="form-control" name="items[0][peso]" value="" required></td>
+                                            <td><input type="number" step="0.01" class="form-control" name="items[0][volumen_agua]" value="" required></td>
+                                            <td><input type="number" step="0.1" class="form-control" name="items[0][temperatura]" value="" required></td>
+                                            <td><input type="number" step="0.01" class="form-control" name="items[0][valor_leido]" value="" required></td>
+                                            <td><input type="text" class="form-control" name="items[0][observaciones]" value=""></td>
+                                            <td><button type="button" class="btn btn-danger btn-sm remove-row">Eliminar</button></td>
+                                        </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
+                            <button type="button" class="btn btn-success" id="add-row">Agregar Fila</button>
                         </div>
                     </div>
 
-                    <!-- Sección: Ítems de Ensayo (Unificada) -->
+                    <!-- Sección: Cálculos y Resultados -->
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Ítems de Ensayo Pendientes</h3>
+                            <h3 class="card-title">Cálculos y Resultados</h3>
                         </div>
                         <div class="card-body">
-                            @if (empty($pendingItems))
-                                <p>No hay ítems pendientes para procesar.</p>
-                            @else
-                                <table class="table table-bordered" id="items_ensayo">
-                                    <thead>
-                                        <tr>
-                                            <th>Código del Proceso</th>
-                                            <th>Identificación</th>
-                                            <th>Peso (g)</th>
-                                            <th>Volumen H₂O (mL)</th>
-                                            <th>Temperatura (°C)</th>
-                                            <th>Valor Leído (pH)</th>
-                                            <th>Observaciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($pendingItems as $index => $item)
-                                            @php
-                                                $analysis = $pendingAnalyses->firstWhere('id', $item['analysis_id']);
-                                            @endphp
-                                            @if ($analysis)
-                                                <tr>
-                                                    <td>{{ $analysis->process->process_id }}</td>
-                                                    <td><input type="text" class="form-control @error('items_ensayo.' . $index . '.identificacion') is-invalid @enderror" name="items_ensayo[{{$index}}][identificacion]" value="{{ old('items_ensayo.' . $index . '.identificacion', $item['identificacion'] ?? '') }}" required></td>
-                                                    <td><input type="number" step="0.01" class="form-control @error('items_ensayo.' . $index . '.peso') is-invalid @enderror" name="items_ensayo[{{$index}}][peso]" value="{{ old('items_ensayo.' . $index . '.peso', $item['peso'] ?? '') }}" required></td>
-                                                    <td><input type="number" step="0.01" class="form-control @error('items_ensayo.' . $index . '.volumen_agua') is-invalid @enderror" name="items_ensayo[{{$index}}][volumen_agua]" value="{{ old('items_ensayo.' . $index . '.volumen_agua', $item['volumen_agua'] ?? '') }}" required></td>
-                                                    <td><input type="number" step="0.01" class="form-control @error('items_ensayo.' . $index . '.temperatura') is-invalid @enderror" name="items_ensayo[{{$index}}][temperatura]" value="{{ old('items_ensayo.' . $index . '.temperatura', $item['temperatura'] ?? '') }}" required></td>
-                                                    <td><input type="number" step="0.01" class="form-control @error('items_ensayo.' . $index . '.valor_leido') is-invalid @enderror" name="items_ensayo[{{$index}}][valor_leido]" value="{{ old('items_ensayo.' . $index . '.valor_leido', $item['valor_leido'] ?? '') }}" required></td>
-                                                    <td><input type="text" class="form-control @error('items_ensayo.' . $index . '.observaciones') is-invalid @enderror" name="items_ensayo[{{$index}}][observaciones]" value="{{ old('items_ensayo.' . $index . '.observaciones', $item['observaciones'] ?? '') }}"></td>
-                                                    <input type="hidden" name="items_ensayo[{{$index}}][analysis_id]" value="{{$item['analysis_id']}}">
-                                                </tr>
-                                            @endif
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                                <button type="button" class="btn btn-primary" id="add-item">Agregar Ítem</button>
-                            @endif
-                        </div>
-                    </div>
-
-                    <!-- Sección: Observaciones -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Observaciones</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="form-group">
-                                <textarea class="form-control @error('observaciones') is-invalid @enderror" name="observaciones" rows="3">{{ old('observaciones', $firstAnalysis->phAnalysis->observaciones ?? '') }}</textarea>
-                                @error('observaciones')
-                                    <span class="invalid-feedback">{{ $message }}</span>
-                                @enderror
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="promedio_muestra">Promedio de la(s) Muestra(s)</label>
+                                        <input type="text" class="form-control" id="promedio_muestra" name="promedio_muestra" value="{{ old('promedio_muestra', $displayPhAnalysis->promedio_muestra ?? '') }}" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="observaciones_generales">Observaciones Generales</label>
+                                        <textarea class="form-control" id="observaciones_generales" name="observaciones_generales" rows="3">{{ old('observaciones_generales', $displayPhAnalysis->observaciones_generales ?? '') }}</textarea>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Submit Button -->
-                    <button type="submit" class="btn btn-primary">Guardar Análisis de pH</button>
-                    <a href="{{ route('ph_analysis.index') }}" class="btn btn-secondary">Cancelar</a>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary">Guardar Análisis de pH</button>
+                        <a href="{{ route('ph_analysis.index') }}" class="btn btn-secondary">Cancelar</a>
+                    </div>
                 </form>
             @endif
         </div>
     </section>
 </div>
 
+@push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Calcular % Error y Aceptabilidad para Controles Analíticos
-    const updateControl = (index) => {
-        const valorLeido = parseFloat(document.querySelector(`.control-valor-leido[data-index="${index}"]`).value) || 0;
-        const valorEsperado = parseFloat(document.querySelector(`.control-valor-esperado[data-index="${index}"]`).value) || 0;
-        if (valorEsperado !== 0) {
-            const error = Math.abs((valorLeido - valorEsperado) / valorEsperado) * 100;
-            document.getElementById(`error_${index}`).textContent = error.toFixed(2) + '%';
-            const aceptabilidad = error <= 5 ? 'Aceptable' : 'No aceptable';
-            document.getElementById(`aceptabilidad_${index}`).textContent = aceptabilidad;
-            if (aceptabilidad === 'No aceptable') {
-                document.getElementById(`aceptabilidad_${index}`).classList.add('text-danger');
+    document.addEventListener('DOMContentLoaded', function () {
+        // Function to calculate % Error and update Aceptabilidad
+        function calculateControlMetrics(rowIndex) {
+            const valorLeidoInput = document.querySelector(`input[name='controles_analiticos[${rowIndex}][valor_leido]']`);
+            const valorEsperadoInput = document.querySelector(`input[name='controles_analiticos[${rowIndex}][valor_esperado]']`);
+            const errorSpan = document.getElementById(`error_${rowIndex}`);
+            const aceptabilidadSpan = document.getElementById(`aceptabilidad_${rowIndex}`);
+
+            const valorLeido = parseFloat(valorLeidoInput.value);
+            const valorEsperado = parseFloat(valorEsperadoInput.value);
+
+            if (!isNaN(valorLeido) && !isNaN(valorEsperado) && valorEsperado !== 0) {
+                const error = ((valorLeido - valorEsperado) / valorEsperado) * 100;
+                errorSpan.textContent = error.toFixed(2) + '%';
+
+                const isAcceptable = Math.abs(error) <= 5; // Assuming acceptable error is within 5%
+                aceptabilidadSpan.textContent = isAcceptable ? 'Aceptable' : 'No Aceptable';
+                aceptabilidadSpan.style.color = isAcceptable ? 'green' : 'red';
             } else {
-                document.getElementById(`aceptabilidad_${index}`).classList.remove('text-danger');
+                errorSpan.textContent = '';
+                aceptabilidadSpan.textContent = '';
             }
-        } else {
-            document.getElementById(`error_${index}`).textContent = '';
-            document.getElementById(`aceptabilidad_${index}`).textContent = '';
-            document.getElementById(`aceptabilidad_${index}`).classList.remove('text-danger');
         }
-    };
 
-    document.querySelectorAll('.control-valor-leido').forEach(input => {
-        input.addEventListener('input', () => updateControl(input.dataset.index));
-    });
-    document.querySelectorAll('.control-valor-esperado').forEach(input => {
-        input.addEventListener('input', () => updateControl(input.dataset.index));
-    });
+        // Add event listeners to control inputs
+        document.querySelectorAll('.control-valor-leido, .control-valor-esperado').forEach(input => {
+            input.addEventListener('input', function() {
+                const rowIndex = this.dataset.index;
+                calculateControlMetrics(rowIndex);
+            });
+        });
 
-    // Validar al enviar el formulario
-    document.getElementById('phAnalysisForm').addEventListener('submit', function (e) {
-        const controlRows = document.querySelectorAll('.control-row');
-        let hasValidControl = false;
-        let allAcceptable = true;
+        // Initial calculation for existing controls
+        document.querySelectorAll('.control-row').forEach((row, index) => {
+            calculateControlMetrics(index);
+        });
 
-        controlRows.forEach((row, index) => {
-            const lote = row.querySelector('.control-lote').value.trim();
-            const valorLeido = row.querySelector('.control-valor-leido').value.trim();
-            const valorEsperado = row.querySelector('.control-valor-esperado').value.trim();
-            const aceptabilidad = document.getElementById(`aceptabilidad_${index}`).textContent;
-
-            // Verificar si el control está completo
-            const isComplete = lote !== '' && valorLeido !== '' && valorEsperado !== '';
-            if (isComplete) {
-                hasValidControl = true;
-                // Verificar aceptabilidad solo para controles completos
-                if (aceptabilidad === 'No aceptable') {
-                    allAcceptable = false;
+        // Function to update average sample value
+        function updatePromedioMuestra() {
+            let total = 0;
+            let count = 0;
+            document.querySelectorAll('input[name^="items"][name$="[valor_leido]"]').forEach(input => {
+                const value = parseFloat(input.value);
+                if (!isNaN(value)) {
+                    total += value;
+                    count++;
                 }
+            });
+            const promedio = count > 0 ? (total / count).toFixed(2) : '';
+            document.getElementById('promedio_muestra').value = promedio;
+        }
+
+        // Add row functionality
+        document.getElementById('add-row').addEventListener('click', function () {
+            const tableBody = document.querySelector('#precision_analitica_table tbody');
+            const newRowIndex = tableBody.children.length;
+            const newRow = `
+                <tr class="item-row">
+                    <td><input type="text" class="form-control" name="items[${newRowIndex}][identificacion]" value="" required></td>
+                    <td><input type="number" step="0.001" class="form-control" name="items[${newRowIndex}][peso]" value="" required></td>
+                    <td><input type="number" step="0.01" class="form-control" name="items[${newRowIndex}][volumen_agua]" value="" required></td>
+                    <td><input type="number" step="0.1" class="form-control" name="items[${newRowIndex}][temperatura]" value="" required></td>
+                    <td><input type="number" step="0.01" class="form-control" name="items[${newRowIndex}][valor_leido]" value="" required></td>
+                    <td><input type="text" class="form-control" name="items[${newRowIndex}][observaciones]" value=""></td>
+                    <td><button type="button" class="btn btn-danger btn-sm remove-row">Eliminar</button></td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML('beforeend', newRow);
+            // Re-attach event listeners for new row
+            tableBody.lastElementChild.querySelector('input[name$="[valor_leido]"]').addEventListener('input', updatePromedioMuestra);
+            tableBody.lastElementChild.querySelector('.remove-row').addEventListener('click', function() {
+                this.closest('tr').remove();
+                updatePromedioMuestra();
+            });
+        });
+
+        // Remove row functionality
+        document.getElementById('precision_analitica_table').addEventListener('click', function (event) {
+            if (event.target.classList.contains('remove-row')) {
+                event.target.closest('tr').remove();
+                updatePromedioMuestra();
             }
         });
 
-        const errorDiv = document.getElementById('controles-error');
-        if (!hasValidControl || !allAcceptable) {
-            e.preventDefault();
-            errorDiv.style.display = 'block';
-        } else {
-            errorDiv.style.display = 'none';
-        }
-    });
+        // Update promedio_muestra on input changes
+        document.querySelectorAll('input[name^="items"][name$="[valor_leido]"]').forEach(input => {
+            input.addEventListener('input', updatePromedioMuestra);
+        });
 
-    // Calcular Precisión Analítica
-    const updatePrecision = () => {
-        const duplicadoA = parseFloat(document.querySelector('.duplicado-a').value);
-        const duplicadoB = parseFloat(document.querySelector('.duplicado-b').value);
-        if (!isNaN(duplicadoA) && !isNaN(duplicadoB)) {
-            const promedio = (duplicadoA + duplicadoB) / 2;
-            const diferencia = Math.abs(duplicadoA - duplicadoB);
-            document.getElementById('promedio').textContent = promedio.toFixed(2);
-            document.getElementById('diferencia').textContent = diferencia.toFixed(2);
-            const aceptabilidad = diferencia <= 0.5 ? 'Aceptable' : 'No aceptable';
-            document.getElementById('aceptabilidad_precision').textContent = aceptabilidad;
-            if (aceptabilidad === 'No aceptable') {
-                document.getElementById('aceptabilidad_precision').classList.add('text-danger');
+        // Initial calculation on page load
+        updatePromedioMuestra();
+
+        // Control Aceptability Validation before form submission
+        document.getElementById('phAnalysisForm').addEventListener('submit', function (event) {
+            let allControlsValid = true;
+            let anyControlFilled = false;
+            document.querySelectorAll('.control-row').forEach(row => {
+                const valorLeidoInput = row.querySelector('.control-valor-leido');
+                const valorEsperadoInput = row.querySelector('.control-valor-esperado');
+                const aceptabilidadSpan = row.querySelector(`[id^="aceptabilidad_"]`);
+
+                if (valorLeidoInput.value !== '' || valorEsperadoInput.value !== '') {
+                    anyControlFilled = true;
+                    if (aceptabilidadSpan.textContent !== 'Aceptable') {
+                        allControlsValid = false;
+                    }
+                }
+            });
+
+            const controlesErrorDiv = document.getElementById('controles-error');
+            if (!anyControlFilled || !allControlsValid) {
+                controlesErrorDiv.style.display = 'block';
+                event.preventDefault();
             } else {
-                document.getElementById('aceptabilidad_precision').classList.remove('text-danger');
+                controlesErrorDiv.style.display = 'none';
             }
-        } else {
-            document.getElementById('promedio').textContent = '';
-            document.getElementById('diferencia').textContent = '';
-            document.getElementById('aceptabilidad_precision').textContent = '';
-            document.getElementById('aceptabilidad_precision').classList.remove('text-danger');
-        }
-    };
-
-    document.querySelectorAll('.duplicado-a, .duplicado-b').forEach(input => {
-        input.addEventListener('input', updatePrecision);
+        });
     });
-
-    // Agregar Ítems de Ensayo
-    let itemIndex = {{ count($pendingItems) }};
-    document.getElementById('add-item').addEventListener('click', function () {
-        const newRow = document.createElement('tr');
-        newRow.innerHTML = `
-            <td><input type="text" class="form-control" name="items_ensayo[${itemIndex}][process_id]" placeholder="Ingrese Código del Proceso"></td>
-            <td><input type="text" class="form-control" name="items_ensayo[${itemIndex}][identificacion]" value="" placeholder="Ingrese Identificación" required></td>
-            <td><input type="number" step="0.01" class="form-control" name="items_ensayo[${itemIndex}][peso]"></td>
-            <td><input type="number" step="0.01" class="form-control" name="items_ensayo[${itemIndex}][volumen_agua]"></td>
-            <td><input type="number" step="0.01" class="form-control" name="items_ensayo[${itemIndex}][temperatura]"></td>
-            <td><input type="number" step="0.01" class="form-control" name="items_ensayo[${itemIndex}][valor_leido]"></td>
-            <td><input type="text" class="form-control" name="items_ensayo[${itemIndex}][observaciones]"></td>
-            <input type="hidden" name="items_ensayo[${itemIndex}][analysis_id]" value="">
-        `;
-        document.querySelector('#items_ensayo tbody').appendChild(newRow);
-        itemIndex++;
-    });
-});
 </script>
+@endpush
 @endsection

@@ -37,7 +37,7 @@ class Process extends Model
 
     public function analyses()
     {
-        return $this->hasMany(Analysis::class, 'process_id', 'process_id');
+        return $this->hasMany(Analysis::class, 'process_id');
     }
 
     public function pendingPhAnalyses()
@@ -67,14 +67,27 @@ class Process extends Model
     {
         return $this->hasMany(ServiceProcessDetail::class, 'process_id', 'process_id');
     }
+
     public function services()
-{
-    return $this->belongsToMany(Service::class, 'process_service', 'process_id', 'services_id')
-               ->withPivot('status', 'cantidad');
-}
-public function completedServices()
-{
-    return $this->belongsToMany(Service::class, 'process_service', 'process_id', 'services_id')
-               ->withPivot('status', 'cantidad');
-}
+    {
+        return $this->hasManyThrough(
+            Service::class,
+            Analysis::class,
+            'process_id', // Clave foránea en analyses
+            'service_id', // Clave foránea en services
+            'process_id', // Clave local en processes
+            'service_id'  // Clave local en analyses
+        );
+    }
+
+    public function completedServices()
+    {
+        return $this->belongsToMany(Service::class, 'process_service', 'process_id', 'services_id')
+                   ->withPivot('status', 'cantidad');
+    }
+
+    public function client()
+    {
+        return $this->belongsTo(Quote::class, 'quote_id', 'quote_id')->with('customer');
+    }
 }

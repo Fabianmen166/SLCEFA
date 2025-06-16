@@ -103,10 +103,6 @@
                                 <i class="fas fa-warehouse"></i>
                                 <p>Informes<i class="fas fa-angle-left right"></i></p>
                             </a>
-<<<<<<< HEAD
-                           
-                               
-=======
                             <ul class="nav nav-treeview">
                                 <li class="nav-item has-treeview">
                                     <a href="#" class="nav-link text-dark">
@@ -157,7 +153,7 @@
                         <!-- Reportes -->
                        
                     </ul>
->>>>>>> 91b94f6 (por si acaso)
+
                 </nav>
                 <!-- /.sidebar-menu -->
             </div>
