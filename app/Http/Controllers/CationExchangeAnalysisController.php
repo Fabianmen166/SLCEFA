@@ -165,8 +165,8 @@ class CationExchangeAnalysisController extends Controller
             $promedio = ($a + $b) / 2;
             $diferencia = abs($a - $b);
             $porcentaje = $promedio > 0 ? ($diferencia / $promedio) * 100 : 0;
-            if ($porcentaje > 10) {
-                return back()->with('error', 'La diferencia entre duplicados supera el 10% permitido.')->withInput();
+            if ($porcentaje > 25) {
+                return back()->with('error', 'La diferencia entre duplicados supera el 25% permitido.')->withInput();
             }
 
             // Validación de veracidad (recuperación)
@@ -207,9 +207,9 @@ class CationExchangeAnalysisController extends Controller
 
             // Validación de Blanco del Proceso
             $blanco_valor_leido = floatval($request->blanco_valor_leido);
-            $blanco_estado = ($blanco_valor_leido <= 0.1) ? 'Aceptable' : 'No Aceptable';
+            $blanco_estado = ($blanco_valor_leido < 1) ? 'Aceptable' : 'No Aceptable'; // Ahora el límite es 1 mL
             if ($blanco_estado === 'No Aceptable') {
-                return back()->with('error', 'El valor del Blanco del Proceso supera el límite de detección de 0.1 mg/L.')->withInput();
+                return back()->with('error', 'El volumen gastado de NaOH en la titulación del Blanco del Proceso debe ser menor a 1 mL.')->withInput();
             }
 
             $itemsEnsayoInput = $request->input('items_ensayo', []);
@@ -427,8 +427,8 @@ class CationExchangeAnalysisController extends Controller
             $promedio = ($a + $b) / 2;
             $diferencia = abs($a - $b);
             $porcentaje = $promedio > 0 ? ($diferencia / $promedio) * 100 : 0;
-            if ($porcentaje > 10) {
-                return back()->with('error', 'La diferencia entre duplicados supera el 10% permitido.')->withInput();
+            if ($porcentaje > 25) {
+                return back()->with('error', 'La diferencia entre duplicados supera el 25% permitido.')->withInput();
             }
 
             // Validación de veracidad (recuperación)
@@ -469,9 +469,9 @@ class CationExchangeAnalysisController extends Controller
 
             // Validación de Blanco del Proceso
             $blanco_valor_leido = floatval($request->blanco_valor_leido);
-            $blanco_estado = ($blanco_valor_leido <= 0.1) ? 'Aceptable' : 'No Aceptable'; // Asumiendo LD = 0.1
+            $blanco_estado = ($blanco_valor_leido < 1) ? 'Aceptable' : 'No Aceptable'; // Ahora el límite es 1 mL
             if ($blanco_estado === 'No Aceptable') {
-                return back()->with('error', 'El valor del Blanco del Proceso supera el límite de detección de 0.1 mg/L.')->withInput();
+                return back()->with('error', 'El volumen gastado de NaOH en la titulación del Blanco del Proceso debe ser menor a 1 mL.')->withInput();
             }
 
             $itemsEnsayo = $request->input('items_ensayo', []);

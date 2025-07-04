@@ -40,28 +40,67 @@
                         <input type="hidden" name="analysis_ids[]" value="{{ $analysis->id }}">
 
                         <div class="row">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="consecutivo_no">Consecutivo No.</label>
                                     <input type="text" class="form-control" id="consecutivo_no" name="consecutivo_no" value="{{ old('consecutivo_no', $analysis->consecutivo_no ?? '') }}" required>
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="fecha_analisis">Fecha de Análisis</label>
-                                    <input type="date" class="form-control" id="fecha_analisis" name="fecha_analisis" value="{{ old('fecha_analisis', date('Y-m-d')) }}" readonly>
+                                    <input type="date" class="form-control" id="fecha_analisis" name="fecha_analisis" value="{{ old('fecha_analisis', date('Y-m-d')) }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="unidades_reporte_equipo">Unidades de reporte equipo</label>
+                                    <input type="text" class="form-control" id="unidades_reporte_equipo" name="unidades_reporte_equipo" value="{{ old('unidades_reporte_equipo', $analysis->unidades_reporte_equipo ?? '') }}">
                                 </div>
                             </div>
                         </div>
-
                         <div class="row">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="nombre_metodo">Nombre del Método</label>
+                                    <input type="text" class="form-control" id="nombre_metodo" name="nombre_metodo" value="{{ old('nombre_metodo', $analysis->nombre_metodo ?? '') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="equipo_utilizado">Equipo utilizado</label>
+                                    <input type="text" class="form-control" id="equipo_utilizado" name="equipo_utilizado" value="{{ old('equipo_utilizado', $analysis->equipo_utilizado ?? '') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="intervalo_metodo">Intervalo del método</label>
+                                    <input type="text" class="form-control" id="intervalo_metodo" name="intervalo_metodo" value="{{ old('intervalo_metodo', $analysis->intervalo_metodo ?? '') }}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="nombre_analista">Nombre Analista</label>
+                                    <input type="text" class="form-control" id="nombre_analista" name="nombre_analista" value="{{ old('nombre_analista', $analysis->nombre_analista ?? '') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="resolucion_instrumental">Resolución instrumental</label>
+                                    <input type="text" class="form-control" id="resolucion_instrumental" name="resolucion_instrumental" value="{{ old('resolucion_instrumental', $analysis->resolucion_instrumental ?? '') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="normalidad_naoh">Normalidad NaOH</label>
                                     <input type="number" step="0.0001" class="form-control" id="normalidad_naoh" name="normalidad_naoh" value="{{ old('normalidad_naoh', $analysis->normalidad_naoh ?? '') }}" required>
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label>Servicio</label>
                                     <p class="form-control-static">{{ $service->descripcion ?? 'N/A' }}</p>
@@ -84,12 +123,12 @@
                                             <input type="text" class="form-control" name="blanco_observaciones" placeholder="Observaciones" value="{{ old('blanco_observaciones', $analysis->controles_analiticos['blanco_observaciones'] ?? '') }}">
                                         </div>
                                         <div class="col-md-4 mt-3">
-                                            <input type="text" class="form-control" name="blanco_estado" placeholder="Estado" value="{{ old('blanco_estado', $analysis->controles_analiticos['blanco_estado'] ?? '') }}" readonly>
+                                            <input type="text" class="form-control" id="blanco_estado" name="blanco_estado" placeholder="Estado" value="{{ old('blanco_estado', $analysis->controles_analiticos['blanco_estado'] ?? '') }}" readonly>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label>Duplicados</label>
+                                    <label>Duplicados <span style="font-weight:normal;color:#000;">(Precisión: RPD &lt; 25%)</span></label>
                                     <div class="row">
                                         <div class="col-md-4">
                                             <input type="number" step="0.0001" class="form-control" name="duplicado_a_valor_leido" placeholder="Duplicado A (mg/L)" value="{{ old('duplicado_a_valor_leido', $analysis->precision_analitica['duplicado_a_valor_leido'] ?? '') }}" required>
@@ -114,6 +153,7 @@
                                         </div>
                                         <div class="col-md-3">
                                             <input type="text" class="form-control" name="veracidad_recuperacion" placeholder="Recuperación (%)" value="{{ old('veracidad_recuperacion', $analysis->veracidad_analitica['recuperacion'] ?? '') }}" readonly>
+                                            <small class="form-text" style="color:#000;">% Recuperación</small>
                                         </div>
                                         <div class="col-md-3">
                                             <input type="text" class="form-control" name="veracidad_observaciones" placeholder="Observaciones" value="{{ old('veracidad_observaciones', $analysis->veracidad_analitica['veracidad_observaciones'] ?? '') }}">
@@ -137,7 +177,7 @@
                                                 <th>Vol NaOH Muestra (ml)</th>
                                                 <th>Vol NaOH Blanco (ml)</th>
                                                 <th>Humedad (%)</th>
-                                                <th>Valor Leído (CIC)</th>
+                                                <th>Valor Leído (CIC) <span style="font-weight:normal;color:#000;">cmol(+)/kg</span></th>
                                                 <th>Observaciones</th>
                                             </tr>
                                         </thead>
@@ -268,6 +308,30 @@
 <script>
     $(document).ready(function() {
         console.log('Script de Análisis de Intercambio Catiónico cargado.');
+        // Validación para evitar comas como separador decimal
+        $('input[type="number"]').on('input', function(e) {
+            let valor = $(this).val();
+            if (valor.includes(',')) {
+                alert('Por favor, utiliza punto (.) como separador decimal, no coma (,).');
+                $(this).val(valor.replace(/,/g, '.'));
+                $(this).focus();
+            }
+        });
+        // Prevención al enviar el formulario
+        $('form').on('submit', function(e) {
+            let hayComa = false;
+            $(this).find('input[type="number"]').each(function() {
+                if ($(this).val().includes(',')) {
+                    hayComa = true;
+                    $(this).focus();
+                    return false;
+                }
+            });
+            if (hayComa) {
+                alert('No se permite el uso de comas como separador decimal. Por favor, usa punto (.)');
+                e.preventDefault();
+            }
+        });
         // Cálculo automático de recuperación en veracidad
         $('input[name="veracidad_valor_leido"], input[name="veracidad_valor_esperado"]').on('input', function() {
             let esperado = parseFloat($('input[name="veracidad_valor_esperado"]').val());
@@ -416,23 +480,28 @@
             }
         });
 
-        // Validación de Blanco del Proceso
-        $('input[name="blanco_valor_leido"]').on('input', function() {
-            let blancoValorLeido = parseFloat($(this).val());
-            let blancoEstadoInput = $('input[name="blanco_estado"]');
-            const limiteDeteccion = 0.1; // Asumiendo 0.1 mg/L según el criterio de aceptación
-
-            if (!isNaN(blancoValorLeido)) {
-                if (blancoValorLeido <= limiteDeteccion) {
-                    blancoEstadoInput.val('Aceptable');
-                    blancoEstadoInput.removeClass('bg-danger').addClass('bg-success');
-                } else {
-                    blancoEstadoInput.val('No Aceptable');
-                    blancoEstadoInput.removeClass('bg-success').addClass('bg-danger');
-                }
+        // Estado del blanco del proceso
+        function actualizarEstadoBlanco() {
+            let valor = parseFloat($('input[name="blanco_valor_leido"]').val().replace(',', '.'));
+            let estado = '';
+            if (!isNaN(valor)) {
+                estado = (valor <= 1) ? 'Aceptable' : 'No Aceptable';
+            }
+            $('#blanco_estado').val(estado);
+            if(estado === 'No Aceptable') {
+                $('#blanco_estado').addClass('bg-danger text-white');
             } else {
-                blancoEstadoInput.val('');
-                blancoEstadoInput.removeClass('bg-success bg-danger');
+                $('#blanco_estado').removeClass('bg-danger text-white');
+            }
+        }
+        $('input[name="blanco_valor_leido"]').on('input', actualizarEstadoBlanco);
+        actualizarEstadoBlanco();
+
+        // Bloquear la tecla coma en los campos numéricos
+        $('input[type="number"]').on('keydown', function(e) {
+            if (e.key === ',') {
+                alert('No se permite el uso de comas como separador decimal. Usa punto (.)');
+                e.preventDefault();
             }
         });
     });
