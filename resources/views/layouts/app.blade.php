@@ -119,6 +119,15 @@
                             </li>
                         @endif
 
+                        @if (Auth::user()->role === 'personal_tecnico')
+                            <li class="nav-item">
+                                <a href="{{ route('bases_cambiables_analysis.index') }}" class="nav-link text-success">
+                                    <i class="nav-icon fas fa-flask"></i>
+                                    <p>Bases Cambiables</p>
+                                </a>
+                            </li>
+                        @endif
+
                     </ul>
                 </nav>
                 <!-- /.sidebar-menu -->

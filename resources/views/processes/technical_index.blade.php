@@ -85,6 +85,11 @@
                                                        class="btn btn-success btn-sm">
                                                         Procesar Intercambio Catiónico
                                                     </a>
+                                                @elseif(str_contains(strtolower($analysis->service->descripcion ?? ''), 'base cambiable') || str_contains(strtolower($analysis->service->descripcion ?? ''), 'bases cambiables'))
+                                                    <a href="{{ route('bases_cambiables_analysis.process', ['processId' => $process->process_id, 'serviceId' => $analysis->service_id]) }}" 
+                                                       class="btn btn-warning btn-sm">
+                                                        Procesar Bases Cambiables
+                                                    </a>
                                                 @endif
                                             </td>
                                         </tr>

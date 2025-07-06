@@ -147,38 +147,14 @@ Route::post('/cotizaciones/{quote_id}/process/start', [ProcessController::class,
         Route::get('/phosphorus-analyses', [PhosphorusAnalysisController::class, 'index'])->name('phosphorus_analysis.index');
         Route::get('/phosphorus-analyses/{processId}/{serviceId}', [PhosphorusAnalysisController::class, 'phosphorusAnalysis'])->name('phosphorus_analysis.phosphorus_analysis');
         Route::post('/phosphorus-analyses/{processId}/{serviceId}', [PhosphorusAnalysisController::class, 'storePhosphorusAnalysis'])->name('phosphorus_analysis.store_phosphorus_analysis');
-    });
 
-    // Rutas para Revisión (Admin y Gestión de Calidad)
-    Route::middleware('role:admin,gestion_calidad')->group(function () {
-        Route::get('/ph-analyses/review', [PhAnalysisController::class, 'indexForReview'])->name('ph_analysis.review_index');
-        Route::get('/ph-analyses/review/{analysis_id}', [PhAnalysisController::class, 'reviewAnalysis'])->name('ph_analysis.review_analysis');
-        Route::post('/ph-analyses/review/{phAnalysisId}', [PhAnalysisController::class, 'storeReview'])->name('ph_analysis.store_review');
-        Route::get('/ph-analyses/edit/{phAnalysisId}', [PhAnalysisController::class, 'editAnalysis'])->name('ph_analysis.edit_analysis');
-        Route::patch('/ph-analyses/update/{phAnalysisId}', [PhAnalysisController::class, 'updateAnalysis'])->name('ph_analysis.update_analysis');
-
-        // Cation Exchange Analysis Review Routes
-        Route::get('/cation-exchange-analyses/review', [CationExchangeAnalysisController::class, 'indexForReview'])->name('cation_exchange_analysis.review_index');
-        Route::get('/cation-exchange-analyses/review/{analysis_id}', [CationExchangeAnalysisController::class, 'reviewAnalysis'])->name('cation_exchange_analysis.review_analysis');
-        Route::post('/cation-exchange-analyses/review/{cationExchangeAnalysisId}', [CationExchangeAnalysisController::class, 'storeReview'])->name('cation_exchange_analysis.store_review');
-        Route::get('/cation-exchange-analyses/edit/{cationExchangeAnalysisId}', [CationExchangeAnalysisController::class, 'editAnalysis'])->name('cation_exchange_analysis.edit_analysis');
-        Route::patch('/cation-exchange-analyses/update/{cationExchangeAnalysisId}', [CationExchangeAnalysisController::class, 'updateAnalysis'])->name('cation_exchange_analysis.update_analysis');
-
-        Route::get('/cotizaciones/process/{process_id}/results-pdf', [ProcessController::class, 'generateResultsPDF'])->name('cotizacion.process.results_pdf');
-    });
-
-    // Rutas para Procesos (Análisis Técnico y Revisión)
-    Route::middleware('role:personal_tecnico')->group(function () {
-        Route::get('/processes/{process_id}/ph-analysis/{service_id}', [ProcessController::class, 'phAnalysis'])->name('process.ph_analysis');
-Route::post('/processes/{process_id}/ph-analysis/{service_id}', [ProcessController::class, 'storePhAnalysis'])->name('process.store_ph_analysis');
-Route::get('/processes/ph-analysis/{analysisId}/download', [ProcessController::class, 'downloadPhReport'])->name('process.download_ph_report');
-        Route::get('/processes/technical', [ProcessController::class, 'technicalIndex'])->name('process.technical_index');
-        Route::get('/process/technical/{process_id}', [ProcessController::class, 'technicalAnalysis'])->name('process.technical_analysis');
-        Route::post('/process/{process_id}/service/{service_id}/analysis', [ProcessController::class, 'storeAnalysis'])->name('process.store_analysis');
-        Route::get('/process/edit-analysis/{analysis_id}', [ProcessController::class, 'editAnalysis'])->name('process.edit_analysis');
-        Route::post('/process/update-analysis/{analysis_id}', [ProcessController::class, 'updateAnalysis'])->name('process.update_analysis');
-        Route::get('/ph-analyses', [PhAnalysisController::class, 'index'])->name('ph_analysis.index');
-        Route::post('/ph-analyses/store', [PhAnalysisController::class, 'storeBatch'])->name('ph_analysis.store');
+        // Rutas para análisis de Bases Cambiables
+        Route::prefix('bases-cambiables-analyses')->name('bases_cambiables_analysis.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\ExchangeableBasesAnalysisController::class, 'index'])->name('index');
+            Route::get('/{processId}/{serviceId}', [\App\Http\Controllers\ExchangeableBasesAnalysisController::class, 'process'])->name('process');
+            Route::post('/{processId}/{serviceId}', [\App\Http\Controllers\ExchangeableBasesAnalysisController::class, 'store'])->name('store');
+            // Aquí se agregarán más rutas en el futuro (batch, etc.)
+        });
     });
 
     Route::middleware('role:admin')->group(function () {
