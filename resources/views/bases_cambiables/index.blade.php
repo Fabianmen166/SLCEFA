@@ -1,3 +1,4 @@
+<?php // Cambio mínimo, no afecta la funcionalidad ?>
 @extends('layouts.app')
 
 @section('contenido')
