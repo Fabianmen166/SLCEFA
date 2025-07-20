@@ -8,6 +8,7 @@ use App\Http\Controllers\ServicePackageController;
 use App\Http\Controllers\ProcessController;
 use App\Http\Controllers\CustomerTypeController;
 use App\Http\Controllers\PhAnalysisController;
+use App\Http\Controllers\HumidityAnalysisController;
 use App\Http\Controllers\CationExchangeAnalysisController;
 use App\Http\Controllers\PhosphorusAnalysisController;
 use Illuminate\Support\Facades\Route;
@@ -133,8 +134,22 @@ Route::post('/cotizaciones/{quote_id}/process/start', [ProcessController::class,
         Route::get('/ph-analyses/report/{analysisId}', [PhAnalysisController::class, 'downloadPhReport'])->name('ph_analysis.download_report');
         Route::get('/ph-analyses/batch', [PhAnalysisController::class, 'batchProcess'])->name('ph_analysis.batch_process');
         Route::match(['get', 'post'], '/ph-analyses/process-all', [PhAnalysisController::class, 'processAll'])->name('ph_analysis.process_all');
+     // Rutas para Humedad
 
-        // Rutas para análisis de intercambio catiónico
+//
+        Route::get('/humidity-analyses', [HumidityAnalysisController::class, 'index'])->name('humidity_analysis.index');
+// Mostrar formulario de análisis de humedad por proceso y servicio
+      Route::get('/humidity-analyses/{processId}/{serviceId}', [HumidityAnalysisController::class, 'humidityAnalysis'])->name('humidity_analysis.humidity_analysis');
+// Guardar el análisis de humedad procesado
+        Route::post('/humidity-analyses/{processId}/{serviceId}', [HumidityAnalysisController::class, 'storeHumidityAnalysis'])->name('humidity_analysis.store_humidity_analysis');
+// Descargar reporte de análisis de humedad
+        Route::get('/humidity-analyses/report/{analysisId}', [HumidityAnalysisController::class, 'downloadHumidityReport'])->name('humidity_analysis.download_report');
+// Procesamiento por lotes de análisis de humedad
+        Route::get('/humidity-analyses/batch', [HumidityAnalysisController::class, 'batchProcess'])->name('humidity_analysis.batch_process');
+// Procesar todos los análisis de humedad (GET o POST)
+        Route::match(['get', 'post'], '/humidity-analyses/process-all', [HumidityAnalysisController::class, 'processAll'])->name('humidity_analysis.process_all');
+        
+// Rutas para análisis de intercambio catiónico
         Route::prefix('cation-exchange-analyses')->name('cation_exchange_analysis.')->group(function () {
             Route::get('/', [CationExchangeAnalysisController::class, 'index'])->name('index');
             Route::get('/batch-process', [CationExchangeAnalysisController::class, 'batchProcess'])->name('batch_process');

@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+    
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
     <div class="wrapper">
@@ -88,6 +89,15 @@
                                 <a href="{{ route('ph_analysis.index') }}" class="nav-link text-success">
                                     <i class="nav-icon fas fa-flask"></i>
                                     <p>Gestión de pH</p>
+                                </a>
+                            </li>
+                        @endif
+                        <!-- Gestión de Análisis de humedad -->
+                        @if (Auth::user()->role === 'personal_tecnico')
+                            <li class="nav-item">
+                                <a href="{{ route('humidity_analysis.index') }}" class="nav-link text-success">
+                                    <i class="nav-icon fas fa-flask"></i>
+                                    <p> Humedad</p>
                                 </a>
                             </li>
                         @endif
