@@ -78,8 +78,7 @@
                                 <!-- Consecutivo -->
                                 <div class="form-group col-md-3">
                                     <label for="consecutivo_no">Consecutivo No.</label>
-                                    <input type="text" class="form-control"
-                                        id="consecutivo_no" name="consecutivo_no">
+                                    <input type="text" class="form-control" id="consecutivo_no" name="consecutivo_no">
                                 </div>
                             </div>
 
@@ -353,86 +352,52 @@
                                 </div>
                             </div>
                         </div>
-
-
                     </div>
+                    <!-- REGISTRO DE MUESTRAS -->
                     <div class="card mt-3">
                         <div class="card-header py-2">
                             <h6 class="mb-0">Registro de Muestras</h6>
                         </div>
-
                         <div class="card-body p-2">
-                            <div class="table-responsive">
-                                <table class="table table-sm table-bordered" id="tabla-muestras">
-                                    <thead class="table-light">
-                                        <tr class="text-center">
-                                            <th>Código interno</th>
-                                            <th>Peso Cápsula, Pc (g)</th>
-                                            <th>Peso Muestra (g)</th>
-                                            <th>Pmh (g)</th>
-                                            <th>Pms (g)</th>
-                                            <th>% Humedad</th>
-                                            <th>Observaciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @for ($i = 1; $i <= 3; $i++)
-                                            <tr>
-                                                <td>
-                                                    <input type="text" name="muestras[{{ $i }}][codigo]"
-                                                        id="codigo_{{ $i }}"
-                                                        class="form-control form-control-sm codigo-interno" readonly>
-                                                </td>
-                                                <td>
-                                                    <input type="number" step="0.0001"
-                                                        name="muestras[{{ $i }}][pc]"
-                                                        id="pc_{{ $i }}"
-                                                        class="form-control form-control-sm peso-capsula">
-                                                </td>
-                                                <td>
-                                                    <input type="number" step="0.0001"
-                                                        name="muestras[{{ $i }}][pm]"
-                                                        id="pm_{{ $i }}"
-                                                        class="form-control form-control-sm peso-muestra">
-                                                </td>
-                                                <td>
-                                                    <input type="number" step="0.0001"
-                                                        name="muestras[{{ $i }}][pmh]"
-                                                        id="pmh_{{ $i }}" readonly
-                                                        class="form-control form-control-sm">
-                                                </td>
-                                                <td>
-                                                    <input type="number" step="0.0001"
-                                                        name="muestras[{{ $i }}][pms]"
-                                                        id="pms_{{ $i }}"
-                                                        class="form-control form-control-sm peso-seco">
-                                                </td>
-                                                <td>
-                                                    <input type="text" name="muestras[{{ $i }}][humedad]"
-                                                        id="humedad_{{ $i }}" readonly
-                                                        class="form-control form-control-sm">
-                                                </td>
-                                                <td>
-                                                    <input type="text" name="muestras[{{ $i }}][obs]"
-                                                        id="obs_{{ $i }}"
-                                                        class="form-control form-control-sm">
-                                                </td>
-                                            </tr>
-                                        @endfor
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div class="mt-2 text-end">
-                                <button type="button" id="agregar-fila" class="btn btn-sm btn-primary">+ Agregar
+                            <table class="table table-bordered text-center" id="tablaMuestras">
+                                <thead>
+                                    <tr>
+                                        <th>Código interno</th>
+                                        <th>Peso Cápsula, Pc (g)</th>
+                                        <th>Peso Muestra (g)</th>
+                                        <th>Pmh (Pc + Muestra)</th>
+                                        <th>Pms (g)</th>
+                                        <th>% Humedad</th>
+                                        <th>Observaciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><input type="text" id="codigo_interno" name="codigo_interno" class="form-control" required>
+                                        </td>
+                                        <td><input type="number" step="0.0001" id=" peso_capsula" name="peso_capsula"
+                                                class="form-control pc" required></td>
+                                        <td><input type="number" step="0.0001" name="peso_muestra"
+                                                class="form-control muestra" required></td>
+                                        <td><input type="number" step="0.0001" id="peso_capsula_muestra_humedad" name="peso_capsula_muestra_humedad"
+                                                class="form-control pmh" readonly></td>
+                                        <td><input type="number" step="0.0001" id="peso_capsula_muestra_seca" name="peso_capsula_muestra_seca"
+                                                class="form-control pms" required></td>
+                                        <td><input type="text" name="porcentaje_humedad"
+                                                class="form-control humedad" readonly></td>
+                                        <td><input type="text" name="observaciones" class="form-control"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-primary" onclick="agregarFila()">+ Agregar
                                     fila</button>
-
-                                <button type="button" id="quitar-fila" class="btn btn-sm btn-danger">- Quitar
+                                <button type="button" class="btn btn-danger" onclick="quitarFila()">- Quitar
                                     fila</button>
-
                             </div>
                         </div>
                     </div>
+
                     <!-- BOTONES -->
                     <div class="card">
                         <div class="card-footer">
@@ -528,69 +493,56 @@
             }
         }
     </script>
-
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Calcular humedad
-            function calcularHumedad(index) {
-                const pc = parseFloat(document.getElementById(`pc_${index}`).value) || 0;
-                const pm = parseFloat(document.getElementById(`pm_${index}`).value) || 0;
-                const pms = parseFloat(document.getElementById(`pms_${index}`).value) || 0;
+    function calcularValores(row) {
+        const pcInput = row.querySelector('.pc');
+        const muestraInput = row.querySelector('.muestra');
+        const pmsInput = row.querySelector('.pms');
+        const pmhInput = row.querySelector('.pmh');
+        const humedadInput = row.querySelector('.humedad');
 
-                const pmh = pc + pm;
-                const humedad = ((pmh - pms) / (pmh - pc)) * 100;
+        const pc = parseFloat(pcInput?.value.replace(',', '.')) || 0;
+        const muestra = parseFloat(muestraInput?.value.replace(',', '.')) || 0;
+        const pms = parseFloat(pmsInput?.value.replace(',', '.')) || 0;
 
-                if (!isNaN(pmh)) {
-                    document.getElementById(`pmh_${index}`).value = pmh.toFixed(4);
-                }
+        // Calcular Pmh: Pc + Muestra
+        const pmh = pc + muestra;
+        pmhInput.value = pmh > 0 ? pmh.toFixed(4) : '';
 
-                if (!isNaN(humedad)) {
-                    document.getElementById(`humedad_${index}`).value = humedad.toFixed(2);
-                }
-            }
+        // Calcular % Humedad si hay datos válidos
+        if (pmh > 0 && pc > 0 && pms > 0 && (pmh - pc) !== 0) {
+            const humedad = ((pmh - pms) / (pmh - pc)) * 100;
+            humedadInput.value = humedad.toFixed(2);
+        } else {
+            humedadInput.value = '';
+        }
+    }
 
-            // Vincular eventos a todos los inputs iniciales
-            function vincularEventos(index) {
-                const campos = [`pc_${index}`, `pm_${index}`, `pms_${index}`];
-                campos.forEach(id => {
-                    const campo = document.getElementById(id);
-                    if (campo) {
-                        campo.addEventListener('input', () => calcularHumedad(index));
-                    }
-                });
-            }
+    function agregarFila() {
+        const table = document.getElementById("tablaMuestras").getElementsByTagName('tbody')[0];
+        const newRow = table.rows[0].cloneNode(true);
 
-            // Vincular a filas ya existentes (iniciales)
-            const filasIniciales = document.querySelectorAll('#tabla-muestras tbody tr');
-            filasIniciales.forEach((tr, i) => vincularEventos(i + 1));
-
-            // Agregar nueva fila
-            let contadorFilas = filasIniciales.length;
-
-            document.getElementById('agregar-fila').addEventListener('click', function() {
-                contadorFilas++;
-                const tbody = document.querySelector('#tabla-muestras tbody');
-                const nuevaFila = document.createElement('tr');
-                nuevaFila.innerHTML = `
-            <td><input type="text" name="muestras[${contadorFilas}][codigo]" class="form-control form-control-sm" id="codigo_${contadorFilas}"></td>
-            <td><input type="number" step="0.0001" name="muestras[${contadorFilas}][pc]" class="form-control form-control-sm" id="pc_${contadorFilas}"></td>
-            <td><input type="number" step="0.0001" name="muestras[${contadorFilas}][pm]" class="form-control form-control-sm" id="pm_${contadorFilas}"></td>
-            <td><input type="number" step="0.0001" name="muestras[${contadorFilas}][pmh]" class="form-control form-control-sm" id="pmh_${contadorFilas}" readonly></td>
-            <td><input type="number" step="0.0001" name="muestras[${contadorFilas}][pms]" class="form-control form-control-sm" id="pms_${contadorFilas}"></td>
-            <td><input type="text" name="muestras[${contadorFilas}][humedad]" class="form-control form-control-sm" id="humedad_${contadorFilas}" readonly></td>
-            <td><input type="text" name="muestras[${contadorFilas}][obs]" class="form-control form-control-sm" id="obs_${contadorFilas}"></td>
-        `;
-                tbody.appendChild(nuevaFila);
-                vincularEventos(contadorFilas);
-            });
-
-            // Quitar última fila (mínimo 1)
-            document.getElementById('quitar-fila').addEventListener('click', function() {
-                const tbody = document.querySelector('#tabla-muestras tbody');
-                if (tbody.rows.length > 1) {
-                    tbody.removeChild(tbody.lastElementChild);
-                    contadorFilas--;
-                }
-            });
+        newRow.querySelectorAll('input').forEach(input => {
+            input.value = '';
         });
-    </script>
+
+        table.appendChild(newRow);
+    }
+
+    function quitarFila() {
+        const table = document.getElementById("tablaMuestras").getElementsByTagName('tbody')[0];
+        if (table.rows.length > 1) {
+            table.deleteRow(table.rows.length - 1);
+        }
+    }
+
+    document.addEventListener('input', function(e) {
+        if (e.target.closest('tr') &&
+            (e.target.classList.contains('pc') || 
+             e.target.classList.contains('muestra') || 
+             e.target.classList.contains('pms'))) {
+            calcularValores(e.target.closest('tr'));
+        }
+    });
+</script>
+
