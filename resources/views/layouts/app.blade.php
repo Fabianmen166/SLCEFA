@@ -138,6 +138,24 @@
                             </li>
                         @endif
 
+                        @if (Auth::user()->role === 'personal_tecnico')
+                            <li class="nav-item">
+                                <a href="{{ route('boron_analysis.index') }}" class="nav-link text-success">
+                                    <i class="nav-icon fas fa-flask"></i>
+                                    <p>Boro</p>
+                                </a>
+                            </li>
+                        @endif
+
+                        @if (Auth::user()->role === 'personal_tecnico')
+                            <li class="nav-item">
+                                <a href="{{ route('sulfur_analysis.index') }}" class="nav-link text-success">
+                                    <i class="nav-icon fas fa-flask"></i>
+                                    <p>Azufre</p>
+                                </a>
+                            </li>
+                        @endif
+
                     </ul>
                 </nav>
                 <!-- /.sidebar-menu -->

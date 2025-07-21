@@ -1,27 +1,24 @@
 @extends('layouts.app')
 
-@section('title', 'Gestión de Análisis de Fósforo')
+@section('title', 'Gestión de Análisis de Azufre')
 
 @section('contenido')
 <div class="content-wrapper">
-    <!-- Content Header -->
     <section class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <h1>Gestión de Análisis de Fósforo</h1>
+                    <h1>Gestión de Análisis de Azufre</h1>
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{ route('personal_tecnico.dashboard') }}">Inicio</a></li>
-                        <li class="breadcrumb-item active">Gestión de Fósforo</li>
+                        <li class="breadcrumb-item active">Gestión de Azufre</li>
                     </ol>
                 </div>
             </div>
         </div>
     </section>
-
-    <!-- Main Content -->
     <section class="content">
         <div class="container-fluid">
             @if (session('success'))
@@ -36,26 +33,16 @@
                     {{ session('error') }}
                 </div>
             @endif
-
-            <div class="row mb-3">
-                <div class="col-md-12">
-                    <button type="button" class="btn btn-primary" id="processSelectedBtn" style="display: none;">Procesar Seleccionados</button>
-                    <button type="button" class="btn btn-secondary" id="clearSelectionBtn" style="display: none;">Limpiar Selección</button>
-                </div>
-            </div>
-
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Análisis de Fósforo Pendientes</h3>
+                    <h3 class="card-title">Análisis de Azufre Pendientes</h3>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-bordered table-striped">
                             <thead>
                                 <tr>
-                                    <th style="width: 30px;">
-                                        <input type="checkbox" id="selectAll">
-                                    </th>
+                                    <th><input type="checkbox" id="select_all"></th>
                                     <th>ID Proceso</th>
                                     <th>Cliente</th>
                                     <th>Fecha de Solicitud</th>
@@ -67,9 +54,7 @@
                                 @forelse($processes as $process)
                                     @foreach($process->analyses as $analysis)
                                         <tr>
-                                            <td>
-                                                <input type="checkbox" class="process-checkbox" value="{{ $analysis->id }}">
-                                            </td>
+                                            <td><input type="checkbox" class="select_analysis" value="{{ $analysis->id }}"></td>
                                             <td>{{ $process->process_id }}</td>
                                             <td>{{ $process->quote->customer->nombre }}</td>
                                             <td>{{ $process->created_at->format('d/m/Y') }}</td>
@@ -77,7 +62,7 @@
                                                 <span class="badge badge-warning">Pendiente</span>
                                             </td>
                                             <td>
-                                                <a href="{{ route('phosphorus_analysis.phosphorus_analysis', [$process->process_id, $analysis->service_id]) }}" 
+                                                <a href="{{ route('sulfur_analysis.sulfur_analysis', [$process->process_id, $analysis->service_id]) }}" 
                                                    class="btn btn-primary btn-sm">
                                                     <i class="fas fa-flask"></i> Realizar Análisis
                                                 </a>
@@ -86,61 +71,37 @@
                                     @endforeach
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center">No hay análisis de fósforo pendientes</td>
+                                        <td colspan="6" class="text-center">No hay análisis de azufre pendientes</td>
                                     </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
+                    <button id="batch_process_btn" class="btn btn-success mt-2" disabled>Procesar por Lotes</button>
                 </div>
             </div>
         </div>
     </section>
 </div>
+@endsection 
 
 @push('scripts')
 <script>
     $(document).ready(function() {
-        // Select All functionality
-        $('#selectAll').change(function() {
-            $('.process-checkbox').prop('checked', $(this).prop('checked'));
-            updateProcessButtons();
+        $('#select_all').on('change', function() {
+            $('.select_analysis').prop('checked', $(this).prop('checked'));
+            $('#batch_process_btn').prop('disabled', $('.select_analysis:checked').length === 0);
         });
-
-        $('.process-checkbox').change(function() {
-            updateProcessButtons();
+        $(document).on('change', '.select_analysis', function() {
+            $('#batch_process_btn').prop('disabled', $('.select_analysis:checked').length === 0);
         });
-
-        function updateProcessButtons() {
-            var checkedCount = $('.process-checkbox:checked').length;
-            if (checkedCount > 0) {
-                $('#processSelectedBtn, #clearSelectionBtn').show();
-            } else {
-                $('#processSelectedBtn, #clearSelectionBtn').hide();
+        $('#batch_process_btn').click(function() {
+            let selected = $('.select_analysis:checked').map(function() { return $(this).val(); }).get();
+            if(selected.length > 0) {
+                let url = "{{ route('sulfur_analysis.batch_process') }}" + '?analysis_ids=' + selected.join(',');
+                window.location.href = url;
             }
-        }
-
-        $('#clearSelectionBtn').click(function() {
-            $('.process-checkbox, #selectAll').prop('checked', false);
-            updateProcessButtons();
-        });
-
-        // Procesar seleccionados (batch)
-        $('#processSelectedBtn').click(function() {
-            var selected = $('.process-checkbox:checked').map(function() { return $(this).val(); }).get();
-            if (selected.length === 0) {
-                alert('Debes seleccionar al menos un análisis.');
-                return;
-            }
-            if (selected.length > 10) {
-                alert('Solo puedes procesar un máximo de 10 análisis a la vez.');
-                return;
-            }
-            // Redirigir por GET con los IDs a la ruta de proceso batch
-            var url = "{{ route('phosphorus_analysis.batch_process') }}" + "?" + selected.map(function(id) { return "analysis_ids[]=" + encodeURIComponent(id); }).join("&");
-            window.location.href = url;
         });
     });
 </script>
-@endpush
-@endsection 
+@endpush 

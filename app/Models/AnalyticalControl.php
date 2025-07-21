@@ -34,7 +34,8 @@ class AnalyticalControl extends Model
         'identificacion_dm', // ID para muestra duplicada
         'identificacion_bm', // ID para muestra de blanco
         'estado',
-        'observaciones'
+        'observaciones',
+        'analista', // Nuevo campo para el nombre del analista
     ];
 
     public function analysis()

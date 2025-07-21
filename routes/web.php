@@ -13,6 +13,7 @@ use App\Http\Controllers\CationExchangeAnalysisController;
 use App\Http\Controllers\PhosphorusAnalysisController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\BoronAnalysisController;
 
 /*
 |--------------------------------------------------------------------------
@@ -162,6 +163,8 @@ Route::post('/cotizaciones/{quote_id}/process/start', [ProcessController::class,
         Route::get('/phosphorus-analyses', [PhosphorusAnalysisController::class, 'index'])->name('phosphorus_analysis.index');
         Route::get('/phosphorus-analyses/{processId}/{serviceId}', [PhosphorusAnalysisController::class, 'phosphorusAnalysis'])->name('phosphorus_analysis.phosphorus_analysis');
         Route::post('/phosphorus-analyses/{processId}/{serviceId}', [PhosphorusAnalysisController::class, 'storePhosphorusAnalysis'])->name('phosphorus_analysis.store_phosphorus_analysis');
+        Route::get('/phosphorus-analyses/batch-process', [PhosphorusAnalysisController::class, 'batchProcess'])->name('phosphorus_analysis.batch_process');
+        Route::post('/phosphorus-analyses/batch-process', [PhosphorusAnalysisController::class, 'storeBatchProcess'])->name('phosphorus_analysis.store_batch_process');
 
         // Rutas para análisis de Bases Cambiables
         Route::prefix('bases-cambiables-analyses')->name('bases_cambiables_analysis.')->group(function () {
@@ -170,6 +173,20 @@ Route::post('/cotizaciones/{quote_id}/process/start', [ProcessController::class,
             Route::post('/{processId}/{serviceId}', [\App\Http\Controllers\ExchangeableBasesAnalysisController::class, 'store'])->name('store');
             // Aquí se agregarán más rutas en el futuro (batch, etc.)
         });
+
+        // Rutas para Boro
+        Route::get('/boron-analyses', [BoronAnalysisController::class, 'index'])->name('boron_analysis.index');
+        Route::get('/boron-analyses/{processId}/{serviceId}', [BoronAnalysisController::class, 'boronAnalysis'])->name('boron_analysis.boron_analysis');
+        Route::post('/boron-analyses/{processId}/{serviceId}', [BoronAnalysisController::class, 'storeBoronAnalysis'])->name('boron_analysis.store_boron_analysis');
+        Route::get('/boron-analyses/batch-process', [BoronAnalysisController::class, 'batchProcess'])->name('boron_analysis.batch_process');
+        Route::post('/boron-analyses/batch-process', [BoronAnalysisController::class, 'storeBatchProcess'])->name('boron_analysis.store_batch_process');
+
+        // Rutas para Azufre
+        Route::get('/sulfur-analyses', [App\Http\Controllers\SulfurAnalysisController::class, 'index'])->name('sulfur_analysis.index');
+        Route::get('/sulfur-analyses/{processId}/{serviceId}', [App\Http\Controllers\SulfurAnalysisController::class, 'sulfurAnalysis'])->name('sulfur_analysis.sulfur_analysis');
+        Route::post('/sulfur-analyses/{processId}/{serviceId}', [App\Http\Controllers\SulfurAnalysisController::class, 'storeSulfurAnalysis'])->name('sulfur_analysis.store_sulfur_analysis');
+        Route::get('/sulfur-analyses/batch-process', [App\Http\Controllers\SulfurAnalysisController::class, 'batchProcess'])->name('sulfur_analysis.batch_process');
+        Route::post('/sulfur-analyses/batch-process', [App\Http\Controllers\SulfurAnalysisController::class, 'storeBatchProcess'])->name('sulfur_analysis.store_batch_process');
     });
 
     Route::middleware('role:admin')->group(function () {

@@ -37,4 +37,9 @@ class Analysis extends Model
     {
         return $this->hasOne(CationExchangeAnalysis::class, 'analysis_id');
     }
+
+    public function boronAnalysis()
+    {
+        return $this->hasOne(\App\Models\BoronAnalysis::class, 'analysis_id');
+    }
 }

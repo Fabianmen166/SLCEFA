@@ -88,67 +88,110 @@ class PhosphorusAnalysisController extends Controller
         try {
             $request->validate([
                 'consecutivo_no' => 'required|string',
+                'fecha_analisis' => 'required|date',
                 'equipo_utilizado' => 'required|string',
-                'resolucion_instrumental' => 'required|string',
-                'unidades_reporte' => 'required|string',
                 'intervalo_metodo' => 'required|string',
-                'items_ensayo' => 'required|json',
-                'controles_analiticos' => 'required|json',
-                'precision_analitica' => 'required|json',
-                'veracidad_analitica' => 'required|json',
-                'observaciones' => 'nullable|string',
-                'reporte_resultados' => 'nullable|json',
-                'controles_calidad' => 'nullable|json',
-                'unidad_concentracion' => 'nullable|string',
-                'regresion' => 'nullable|string',
-                'longitud_onda' => 'nullable|string',
-                'espesor_capa' => 'nullable|string',
-                'fecha_hora_medida' => 'nullable|date',
-                'coeficientes_calculados' => 'nullable|string',
-                'grado_determinacion' => 'nullable|string',
-                'valor_limite' => 'nullable|string',
+                'analista' => 'required|string',
+                'items' => 'required|array',
+                'items.*.codigo_interno' => 'nullable|string',
+                'items.*.peso_muestra' => 'nullable|numeric',
+                'items.*.pw' => 'nullable|numeric',
+                'items.*.v_extractante' => 'nullable|numeric',
+                'items.*.lectura_blanco' => 'nullable|numeric',
+                'items.*.factor_dilucion' => 'nullable|numeric',
+                'items.*.fosforo_disponible_mg_l' => 'nullable|numeric',
+                'items.*.fosforo_disponible_mg_kg' => 'nullable|numeric',
+                'items.*.observaciones_item' => 'nullable|string',
+                'controles_analiticos' => 'required|array',
             ]);
 
             $analysis = Analysis::where('process_id', $processId)
                 ->where('service_id', $serviceId)
                 ->firstOrFail();
 
-            $phosphorusAnalysis = PhosphorusAnalysis::create([
-                'analysis_id' => $analysis->id,
-                'consecutivo_no' => $request->consecutivo_no,
-                'fecha_analisis' => now(),
-                'user_id' => Auth::id(),
-                'equipo_utilizado' => $request->equipo_utilizado,
-                'resolucion_instrumental' => $request->resolucion_instrumental,
-                'unidades_reporte' => $request->unidades_reporte,
-                'intervalo_metodo' => $request->intervalo_metodo,
-                'items_ensayo' => $request->items_ensayo,
-                'controles_analiticos' => $request->controles_analiticos,
-                'precision_analitica' => $request->precision_analitica,
-                'veracidad_analitica' => $request->veracidad_analitica,
-                'observaciones' => $request->observaciones,
-                'reporte_resultados' => $request->reporte_resultados,
-                'controles_calidad' => $request->controles_calidad,
-                'unidad_concentracion' => $request->unidad_concentracion,
-                'regresion' => $request->regresion,
-                'longitud_onda' => $request->longitud_onda,
-                'espesor_capa' => $request->espesor_capa,
-                'fecha_hora_medida' => $request->fecha_hora_medida,
-                'coeficientes_calculados' => $request->coeficientes_calculados,
-                'grado_determinacion' => $request->grado_determinacion,
-                'valor_limite' => $request->valor_limite,
-            ]);
+            // Guardar ítems de ensayo en phosphorus_analyses
+            foreach ($request->items as $item) {
+                \App\Models\PhosphorusAnalysis::create([
+                    'consecutivo_no' => $request->consecutivo_no,
+                    'analysis_id' => $analysis->id,
+                    'fecha_analisis' => $request->fecha_analisis,
+                    'user_id' => auth()->id(),
+                    'equipo_utilizado' => $request->equipo_utilizado,
+                    'intervalo_metodo' => $request->intervalo_metodo,
+                    'analista' => $request->analista,
+                    'codigo_interno' => $item['codigo_interno'] ?? null,
+                    'peso_muestra' => $item['peso_muestra'] ?? null,
+                    'pw' => $item['pw'] ?? null,
+                    'v_extractante' => $item['v_extractante'] ?? null,
+                    'lectura_blanco' => $item['lectura_blanco'] ?? null,
+                    'factor_dilucion' => $item['factor_dilucion'] ?? null,
+                    'fosforo_disponible_mg_l' => $item['fosforo_disponible_mg_l'] ?? null,
+                    'fosforo_disponible_mg_kg' => $item['fosforo_disponible_mg_kg'] ?? null,
+                    'observaciones_item' => $item['observaciones_item'] ?? null,
+                ]);
+            }
+
+            // Guardar cada fila de controles analíticos en analytical_controls
+            foreach ($request->controles_analiticos as $control) {
+                \App\Models\AnalyticalControl::create([
+                    'analysis_id' => $analysis->id,
+                    'valor_referencia' => $control['identificacion'] ?? null,
+                    'valor_obtenido' => $control['valor_leido'] ?? null,
+                    'recuperacion' => $control['porcentaje_recuperacion'] ?? null,
+                    'dpr' => $control['porcentaje_dpr'] ?? null,
+                    'estado' => $control['aceptabilidad_error'] ?? null,
+                    'observaciones' => null,
+                    'analista' => $request->analista,
+                ]);
+            }
+
+            // Guardar curva de calibración y duplicados si vienen en el request
+            if ($request->has('curva_calibracion')) {
+                \App\Models\AnalyticalControl::create([
+                    'analysis_id' => $analysis->id,
+                    'valor_referencia' => 'Curva de calibración',
+                    'valor_obtenido' => $request->curva_calibracion,
+                    'recuperacion' => null,
+                    'dpr' => null,
+                    'estado' => null,
+                    'observaciones' => null,
+                    'analista' => $request->analista,
+                ]);
+            }
+            if ($request->has('duplicado_a')) {
+                \App\Models\AnalyticalControl::create([
+                    'analysis_id' => $analysis->id,
+                    'valor_referencia' => 'Duplicado A',
+                    'valor_obtenido' => $request->duplicado_a,
+                    'recuperacion' => null,
+                    'dpr' => $request->dpr_resultado ?? null,
+                    'estado' => $request->dpr_aceptabilidad ?? null,
+                    'observaciones' => null,
+                    'analista' => $request->analista,
+                ]);
+            }
+            if ($request->has('duplicado_b')) {
+                \App\Models\AnalyticalControl::create([
+                    'analysis_id' => $analysis->id,
+                    'valor_referencia' => 'Duplicado B',
+                    'valor_obtenido' => $request->duplicado_b,
+                    'recuperacion' => null,
+                    'dpr' => $request->dpr_resultado ?? null,
+                    'estado' => $request->dpr_aceptabilidad ?? null,
+                    'observaciones' => null,
+                    'analista' => $request->analista,
+                ]);
+            }
 
             $analysis->update(['status' => 'completed']);
 
-            Log::info('Phosphorus analysis stored successfully:', [
+            Log::info('Controles analíticos guardados exitosamente:', [
                 'user_id' => Auth::id(),
                 'analysis_id' => $analysis->id,
-                'phosphorus_analysis_id' => $phosphorusAnalysis->id,
             ]);
 
             return redirect()->route('phosphorus_analysis.index')
-                           ->with('success', 'Análisis de fósforo guardado exitosamente');
+                           ->with('success', 'Controles analíticos guardados exitosamente');
         } catch (\Exception $e) {
             Log::error('Error in PhosphorusAnalysisController@storePhosphorusAnalysis: ' . $e->getMessage(), [
                 'user_id' => Auth::id(),
@@ -159,5 +202,80 @@ class PhosphorusAnalysisController extends Controller
             return redirect()->route('phosphorus_analysis.index')
                            ->with('error', 'Error al guardar el análisis de fósforo: ' . $e->getMessage());
         }
+    }
+
+    public function batchProcess(Request $request)
+    {
+        $analysisIds = $request->input('analysis_ids', []);
+        if (count($analysisIds) === 0 || count($analysisIds) > 10) {
+            return redirect()->route('phosphorus_analysis.index')->with('error', 'Debes seleccionar entre 1 y 10 análisis para procesar por lote.');
+        }
+        $pendingAnalyses = \App\Models\Analysis::with(['process'])
+            ->whereIn('id', $analysisIds)
+            ->get();
+        return view('phosphorus_analyses.batch_process', compact('pendingAnalyses'));
+    }
+
+    public function storeBatchProcess(Request $request)
+    {
+        $analysisIds = $request->input('analysis_ids', []);
+        if (count($analysisIds) === 0 || count($analysisIds) > 10) {
+            return redirect()->route('phosphorus_analysis.index')->with('error', 'Debes seleccionar entre 1 y 10 análisis para procesar por lote.');
+        }
+        $itemsEnsayo = $request->input('items_ensayo', []);
+        $controlesAnaliticos = $request->input('controles_analiticos', []);
+        // Guardar controles analíticos y curva para cada análisis
+        foreach ($analysisIds as $analysisId) {
+            // Guardar controles analíticos (dos filas)
+            foreach ($controlesAnaliticos as $control) {
+                \App\Models\AnalyticalControl::create([
+                    'analysis_id' => $analysisId,
+                    'valor_referencia' => $control['identificacion'] ?? null,
+                    'valor_obtenido' => $control['valor_leido'] ?? null,
+                    'recuperacion' => $control['porcentaje_recuperacion'] ?? null,
+                    'dpr' => $control['porcentaje_dpr'] ?? null,
+                    'estado' => $control['aceptabilidad_dpr'] ?? null,
+                    'observaciones' => null,
+                    'analista' => $request->analista ?? null,
+                ]);
+            }
+            // Guardar curva de calibración como control especial
+            \App\Models\AnalyticalControl::create([
+                'analysis_id' => $analysisId,
+                'valor_referencia' => 'Curva de calibración',
+                'valor_obtenido' => '0.995',
+                'recuperacion' => null,
+                'dpr' => $request->dpr_resultado ?? null,
+                'estado' => $request->dpr_aceptabilidad ?? null,
+                'observaciones' => null,
+                'analista' => $request->analista ?? null,
+            ]);
+        }
+        // Guardar ítems de ensayo
+        foreach ($itemsEnsayo as $item) {
+            $analysisId = $item['analysis_id'] ?? null;
+            if ($analysisId && in_array($analysisId, $analysisIds)) {
+                \App\Models\PhosphorusAnalysis::create([
+                    'consecutivo_no' => $request->consecutivo_no ?? '',
+                    'analysis_id' => $analysisId,
+                    'fecha_analisis' => $request->fecha_analisis ?? now(),
+                    'user_id' => auth()->id(),
+                    'equipo_utilizado' => $request->equipo_utilizado ?? '',
+                    'intervalo_metodo' => $request->intervalo_metodo ?? '',
+                    'analista' => $request->analista ?? '',
+                    'codigo_interno' => $item['codigo_interno'] ?? null,
+                    'peso_muestra' => $item['peso_muestra'] ?? null,
+                    'pw' => $item['pw'] ?? null,
+                    'v_extractante' => $item['v_extractante'] ?? null,
+                    'lectura_blanco' => $item['lectura_blanco'] ?? null,
+                    'factor_dilucion' => $item['factor_dilucion'] ?? null,
+                    'fosforo_disponible_mg_l' => $item['fosforo_disponible_mg_l'] ?? null,
+                    'fosforo_disponible_mg_kg' => $item['fosforo_disponible_mg_kg'] ?? null,
+                    'observaciones_item' => $item['observaciones_item'] ?? null,
+                ]);
+                \App\Models\Analysis::where('id', $analysisId)->update(['status' => 'completed']);
+            }
+        }
+        return redirect()->route('phosphorus_analysis.index')->with('success', 'Análisis de Fósforo por lote guardados exitosamente.');
     }
 }

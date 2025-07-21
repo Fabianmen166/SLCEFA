@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Gestión de Análisis de Fósforo')
+@section('title', 'Gestión de Análisis de Boro')
 
 @section('contenido')
 <div class="content-wrapper">
@@ -9,12 +9,12 @@
         <div class="container-fluid">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <h1>Gestión de Análisis de Fósforo</h1>
+                    <h1>Gestión de Análisis de Boro</h1>
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{ route('personal_tecnico.dashboard') }}">Inicio</a></li>
-                        <li class="breadcrumb-item active">Gestión de Fósforo</li>
+                        <li class="breadcrumb-item active">Gestión de Boro</li>
                     </ol>
                 </div>
             </div>
@@ -44,9 +44,15 @@
                 </div>
             </div>
 
+            <!-- Formulario oculto para batch -->
+            <form id="batchProcessForm" method="POST" action="{{ route('boron_analysis.boron_analysis', ['multi', 'multi']) }}" style="display:none;">
+                @csrf
+                <input type="hidden" name="analysis_ids" id="analysis_ids_input">
+            </form>
+
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Análisis de Fósforo Pendientes</h3>
+                    <h3 class="card-title">Análisis de Boro Pendientes</h3>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -77,7 +83,7 @@
                                                 <span class="badge badge-warning">Pendiente</span>
                                             </td>
                                             <td>
-                                                <a href="{{ route('phosphorus_analysis.phosphorus_analysis', [$process->process_id, $analysis->service_id]) }}" 
+                                                <a href="{{ route('boron_analysis.boron_analysis', [$process->process_id, $analysis->service_id]) }}" 
                                                    class="btn btn-primary btn-sm">
                                                     <i class="fas fa-flask"></i> Realizar Análisis
                                                 </a>
@@ -86,7 +92,7 @@
                                     @endforeach
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center">No hay análisis de fósforo pendientes</td>
+                                        <td colspan="6" class="text-center">No hay análisis de boro pendientes</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -136,8 +142,8 @@
                 alert('Solo puedes procesar un máximo de 10 análisis a la vez.');
                 return;
             }
-            // Redirigir por GET con los IDs a la ruta de proceso batch
-            var url = "{{ route('phosphorus_analysis.batch_process') }}" + "?" + selected.map(function(id) { return "analysis_ids[]=" + encodeURIComponent(id); }).join("&");
+            // Redirigir por GET con los IDs a la ruta de proceso principal
+            var url = "{{ route('boron_analysis.batch_process') }}" + "?" + selected.map(function(id) { return "analysis_ids[]=" + encodeURIComponent(id); }).join("&");
             window.location.href = url;
         });
     });

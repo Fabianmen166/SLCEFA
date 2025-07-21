@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class PhosphorusAnalysis extends Model
+class BoronAnalysis extends Model
 {
     use HasFactory;
 
-    protected $table = 'phosphorus_analyses';
+    protected $table = 'boron_analyses';
 
     protected $fillable = [
         'consecutivo_no',
@@ -25,15 +25,17 @@ class PhosphorusAnalysis extends Model
         'v_extractante',
         'lectura_blanco',
         'factor_dilucion',
-        'fosforo_disponible_mg_l',
-        'fosforo_disponible_mg_kg',
+        'boron_disponible_mg_l',
+        'boron_disponible_mg_kg',
         'observaciones_item',
+        'controles_analiticos',
     ];
 
     protected $casts = [
         'fecha_analisis' => 'date',
         'review_date' => 'datetime',
         'fecha_hora_medida' => 'datetime',
+        'controles_analiticos' => 'array',
     ];
 
     public function analysis()
@@ -45,4 +47,4 @@ class PhosphorusAnalysis extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
-}
+} 
